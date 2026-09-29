@@ -5,658 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>RouterForge · PPPoE + RADIUS</title>
-    <style>
-        :root {
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-            color: #eaf3fb;
-            background: #09111d;
-            font-synthesis: none
-        }
-
-        * {
-            box-sizing: border-box
-        }
-
-        html {
-            scroll-behavior: smooth
-        }
-
-        body {
-            margin: 0;
-            background: radial-gradient(circle at 85% -10%, #134b5355 0, transparent 38%), #09111d;
-            color: #eaf3fb;
-            font-size: 14px;
-            line-height: 1.5
-        }
-
-        button,
-        input,
-        select,
-        textarea {
-            font: inherit
-        }
-
-        button {
-            cursor: pointer
-        }
-
-        ::selection {
-            background: #44ddc066;
-            color: #fff
-        }
-
-        .layout {
-            display: grid;
-            grid-template-columns: 252px minmax(0, 1fr);
-            min-height: 100vh
-        }
-
-        .sidebar {
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            padding: 30px 20px;
-            border-right: 1px solid #233246;
-            background: #0b1624eb;
-            display: flex;
-            flex-direction: column
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 17px;
-            font-weight: 800;
-            letter-spacing: -.04em
-        }
-
-        .brand-mark {
-            width: 37px;
-            height: 37px;
-            display: grid;
-            place-items: center;
-            background: #47dfc1;
-            color: #071b21;
-            border-radius: 11px;
-            font-weight: 900;
-            font-size: 22px;
-            box-shadow: 0 0 30px #47dfc12e
-        }
-
-        .brand em {
-            font-style: normal;
-            color: #4be0c4
-        }
-
-        .side-label {
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            color: #71859c;
-            margin: 44px 12px 12px
-        }
-
-        .side-nav {
-            display: grid;
-            gap: 5px
-        }
-
-        .side-nav a {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            color: #a9bdd1;
-            text-decoration: none;
-            padding: 11px 12px;
-            border-radius: 10px;
-            font-weight: 650
-        }
-
-        .side-nav a:hover,
-        .side-nav a:focus-visible {
-            background: #1a2b3d;
-            color: #fff
-        }
-
-        .side-nav span {
-            color: #4cdbc0;
-            font-size: 11px;
-            font-family: ui-monospace, monospace
-        }
-
-        .side-bottom {
-            margin-top: auto;
-            border: 1px solid #2c4552;
-            background: #122631;
-            border-radius: 13px;
-            padding: 15px;
-            color: #a9c4ce;
-            font-size: 12px
-        }
-
-        .side-bottom strong {
-            display: block;
-            color: #6ee6d1;
-            font-size: 12px;
-            margin-bottom: 4px
-        }
-
-        .workspace {
-            min-width: 0;
-            padding: 42px clamp(22px, 5vw, 76px) 80px;
-            max-width: 1280px;
-            width: 100%;
-            margin: 0 auto
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 48px
-        }
-
-        .crumb {
-            color: #91a8bb;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: .08em;
-            text-transform: uppercase
-        }
-
-        .crumb b {
-            color: #4bdcc2
-        }
-
-        .badge {
-            border: 1px solid #2c665f;
-            border-radius: 99px;
-            padding: 6px 11px;
-            background: #10302e;
-            color: #7de8d5;
-            font-size: 11px;
-            font-weight: 750;
-            white-space: nowrap
-        }
-
-        .hero {
-            margin-bottom: 38px
-        }
-
-        .eyebrow {
-            color: #4cdbc0;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: .18em;
-            text-transform: uppercase;
-            margin: 0 0 9px
-        }
-
-        .hero h1 {
-            font-size: clamp(35px, 4.5vw, 61px);
-            line-height: 1.08;
-            letter-spacing: -.055em;
-            margin: 0 0 13px;
-            max-width: 830px
-        }
-
-        .hero h1 span {
-            color: #4be0c4
-        }
-
-        .hero p {
-            max-width: 610px;
-            color: #a9bed0;
-            font-size: 16px;
-            margin: 0
-        }
-
-        .feature-line {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 9px;
-            margin-top: 22px
-        }
-
-        .feature-line span {
-            border: 1px solid #293d50;
-            background: #142335;
-            border-radius: 99px;
-            padding: 6px 11px;
-            color: #b2c6d5;
-            font-size: 11px;
-            font-weight: 700
-        }
-
-        .section-head {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin: 36px 0 14px;
-            scroll-margin-top: 24px
-        }
-
-        .section-head .num {
-            color: #54ddc5;
-            background: #153632;
-            border: 1px solid #296d62;
-            min-width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: grid;
-            place-items: center;
-            font: 800 12px ui-monospace, monospace
-        }
-
-        .section-head h2 {
-            font-size: 21px;
-            letter-spacing: -.025em;
-            margin: 0
-        }
-
-        .section-head p {
-            margin: 1px 0 0;
-            color: #8196aa;
-            font-size: 12px
-        }
-
-        .card {
-            border: 1px solid #27384d;
-            background: linear-gradient(145deg, #132234, #101c2b);
-            border-radius: 17px;
-            padding: 25px;
-            box-shadow: 0 14px 35px #0000001a
-        }
-
-        .subcard {
-            border: 1px solid #294453;
-            background: #102a36;
-            border-radius: 12px;
-            padding: 17px;
-            margin-top: 18px
-        }
-
-        .subcard-title {
-            font-weight: 800;
-            color: #8ce9da;
-            margin-bottom: 14px;
-            font-size: 12px;
-            letter-spacing: .08em;
-            text-transform: uppercase
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px 20px
-        }
-
-        .grid>div {
-            min-width: 0
-        }
-
-        label {
-            display: block;
-            font-size: 12px;
-            font-weight: 720;
-            color: #bdd0e0;
-            margin-bottom: 7px
-        }
-
-        input,
-        select,
-        textarea {
-            display: block;
-            width: 100%;
-            min-width: 0;
-            border: 1px solid #33475d;
-            border-radius: 9px;
-            background: #0b1828;
-            color: #f2f8ff;
-            padding: 11px 12px;
-            outline: 0;
-            transition: border-color .15s, box-shadow .15s
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: #60758a
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: #48d8bd;
-            box-shadow: 0 0 0 3px #42dcb326
-        }
-
-        input[readonly] {
-            color: #a3d4d0;
-            background: #10242f
-        }
-
-        select {
-            appearance: none;
-            background-image: linear-gradient(45deg, transparent 50%, #64d9c4 50%), linear-gradient(135deg, #64d9c4 50%, transparent 50%);
-            background-position: calc(100% - 19px) 18px, calc(100% - 14px) 18px;
-            background-size: 5px 5px;
-            background-repeat: no-repeat;
-            padding-right: 34px
-        }
-
-        textarea {
-            min-height: 100px;
-            resize: vertical;
-            font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace
-        }
-
-        small {
-            display: block;
-            color: #8197aa;
-            font-size: 11px;
-            line-height: 1.55;
-            margin-top: 7px
-        }
-
-        .hidden {
-            display: none !important
-        }
-
-        .check {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin: 0;
-            color: #c6d8e6;
-            font-size: 12px;
-            line-height: 1.45;
-            cursor: pointer
-        }
-
-        .check input {
-            width: 16px;
-            height: 16px;
-            min-width: 16px;
-            accent-color: #4adfc3;
-            margin: 1px 0 0
-        }
-
-        .options {
-            display: grid;
-            gap: 16px;
-            margin-top: 20px
-        }
-
-        .options>div {
-            border-top: 1px solid #293e4f;
-            padding-top: 15px
-        }
-
-        .options small {
-            margin-left: 26px
-        }
-
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            border: 1px solid #345964;
-            color: #78dccd;
-            border-radius: 6px;
-            padding: 2px 7px;
-            font: 700 10px ui-monospace, monospace;
-            margin-bottom: 12px
-        }
-
-        .helper {
-            color: #8ca4b6;
-            margin: 0 0 17px;
-            font-size: 12px
-        }
-
-        .fixed-pool {
-            border: 1px solid #2a5758;
-            background: #0b2630;
-            border-radius: 9px;
-            padding: 11px 12px;
-            color: #8de5d6;
-            font: 700 12px ui-monospace, monospace
-        }
-
-        .pool-preview {
-            background: #0b2531;
-            border: 1px solid #286160;
-            color: #9bebde;
-            border-radius: 9px;
-            padding: 13px 15px;
-            margin: 20px 0 0;
-            font: 12px/1.7 ui-monospace, monospace;
-            overflow-wrap: anywhere
-        }
-
-        .stack {
-            display: grid;
-            gap: 18px
-        }
-
-        .multi {
-            border: 1px solid #283d51;
-            background: #112030;
-            border-radius: 12px;
-            padding: 18px
-        }
-
-        .multi h3 {
-            font-size: 15px;
-            margin: 0 0 5px
-        }
-
-        .multi small {
-            margin-top: 9px
-        }
-
-        .multi textarea {
-            margin-top: 13px
-        }
-
-        .multi label {
-            margin-top: 12px
-        }
-
-        .multi .tag {
-            margin-bottom: 2px
-        }
-
-        .output-card {
-            border: 1px solid #2c605d;
-            background: linear-gradient(145deg, #142c37, #0f1c2a);
-            border-radius: 18px;
-            padding: 24px;
-            margin-top: 38px;
-            scroll-margin-top: 20px
-        }
-
-        .output-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 18px;
-            flex-wrap: wrap
-        }
-
-        .output-top h2 {
-            margin: 0;
-            font-size: 22px;
-            letter-spacing: -.025em
-        }
-
-        .output-top p {
-            color: #8aa4b5;
-            margin: 4px 0 0;
-            font-size: 12px
-        }
-
-        .actions {
-            display: flex;
-            gap: 9px;
-            flex-wrap: wrap
-        }
-
-        button {
-            border: 1px solid #49dec3;
-            background: #49dec3;
-            color: #092328;
-            border-radius: 9px;
-            padding: 10px 15px;
-            font-weight: 800;
-            font-size: 12px;
-            transition: transform .15s, filter .15s
-        }
-
-        button:hover:not(:disabled) {
-            transform: translateY(-1px);
-            filter: brightness(1.08)
-        }
-
-        button.secondary {
-            background: #203544;
-            color: #d2e5ec;
-            border-color: #3a5964
-        }
-
-        button:disabled {
-            opacity: .42;
-            cursor: not-allowed
-        }
-
-        #error {
-            color: #ff9d9d;
-            font-size: 12px;
-            font-weight: 750;
-            white-space: pre-wrap;
-            margin-top: 14px
-        }
-
-        #error:empty {
-            display: none
-        }
-
-        #summary {
-            white-space: pre-wrap;
-            color: #8de5d6;
-            font: 12px/1.6 ui-monospace, monospace;
-            margin: 17px 0
-        }
-
-        #summary:empty {
-            display: none
-        }
-
-        pre {
-            border: 1px solid #293f4f;
-            background: #081522;
-            color: #d0e5ef;
-            padding: 20px;
-            border-radius: 11px;
-            overflow: auto;
-            white-space: pre;
-            font: 12px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace;
-            max-height: 600px;
-            min-height: 180px;
-            margin: 16px 0 0
-        }
-
-        .footnote {
-            margin-top: 22px;
-            color: #71889b;
-            font-size: 11px
-        }
-
-        @media(max-width:900px) {
-            .layout {
-                display: block
-            }
-
-            .sidebar {
-                position: relative;
-                height: auto;
-                border-right: 0;
-                border-bottom: 1px solid #27384d;
-                padding: 15px 20px
-            }
-
-            .side-label,
-            .side-bottom {
-                display: none
-            }
-
-            .side-nav {
-                display: flex;
-                overflow: auto;
-                gap: 2px;
-                margin-top: 12px
-            }
-
-            .side-nav a {
-                white-space: nowrap;
-                font-size: 11px;
-                padding: 7px
-            }
-
-            .workspace {
-                padding: 26px 20px 60px
-            }
-
-            .topbar {
-                margin-bottom: 30px
-            }
-        }
-
-        @media(max-width:610px) {
-            .grid {
-                grid-template-columns: 1fr
-            }
-
-            .card {
-                padding: 18px
-            }
-
-            .hero h1 {
-                font-size: 38px
-            }
-
-            .topbar {
-                align-items: flex-start
-            }
-
-            .badge {
-                display: none
-            }
-
-            .output-card {
-                padding: 17px
-            }
-
-            .actions {
-                width: 100%
-            }
-
-            .actions button {
-                flex: 1 1 auto
-            }
-
-            pre {
-                font-size: 11px
-            }
-
-            .side-nav a:nth-child(n+5) {
-                display: none
-            }
-        }
-    </style>
+    <title>RouterForge · PPPoE + Hotspot + RADIUS</title>
+        <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -668,24 +18,24 @@
             </div>
             <div class="side-label">Configuration</div>
             <nav class="side-nav" aria-label="Sections"><a href="#wan"><span>01</span> WAN uplink</a><a
-                    href="#customers"><span>02</span> Customer side</a><a href="#advanced"><span>03</span> Scale
-                    up</a><a href="#radius"><span>04</span> RADIUS & VPN</a><a href="#result"><span>05</span> Script
+                    href="#customers"><span>02</span> Customer side</a><a href="#hotspot"><span>03</span> Hotspot</a><a href="#advanced"><span>04</span> Scale
+                    up</a><a href="#radius"><span>05</span> RADIUS & VPN</a><a href="#result"><span>06</span> Script
                     output</a></nav>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser. Credentials
                 stay in the page until you close it.</div>
         </aside>
         <main class="workspace">
             <div class="topbar">
-                <div class="crumb">NETWORK TOOLS <b>/</b> PPPoE CONFIGURATOR</div>
+            <div class="crumb">NETWORK TOOLS <b>/</b> PPPoE + HOTSPOT CONFIGURATOR</div>
                 <div class="badge">ROUTEROS 7 · .RSC EXPORT</div>
             </div>
             <header class="hero">
                 <div class="eyebrow">CONFIGURATION STUDIO</div>
-                <h1>PPPoE + RADIUS,<br><span>ready for your network.</span></h1>
-                <p>Build your WAN, customer interfaces, pools, profiles and RADIUS path. Review the RouterOS script
-                    before importing it.</p>
+                <h1>PPPoE + Hotspot,<br><span>ready for your network.</span></h1>
+                <p>Build your WAN, customer interfaces, pools, profiles, optional Hotspot and RADIUS path. Review the
+                    RouterOS script before importing it.</p>
                 <div class="feature-line"><span>◆ PR3S server mapping</span><span>◆ Multi VLAN & profile</span><span>◆
-                        DHCP / Static / PPPoE WAN</span></div>
+                        DHCP / Static / PPPoE WAN</span><span>◆ Optional Hotspot</span></div>
             </header>
             <section id="wan">
                 <div class="section-head">
@@ -788,9 +138,37 @@
                     <div id="poolPreview" class="pool-preview" aria-live="polite"></div>
                 </div>
             </section>
-            <section id="advanced">
+            <section id="hotspot">
                 <div class="section-head">
                     <div class="num">03</div>
+                    <div>
+                        <h2>Optional Hotspot</h2>
+                        <p>Add a DHCP-backed captive portal on one selected interface.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="options" style="margin-top:0">
+                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enableHotspot" type="checkbox">Enable Hotspot</label></div>
+                    </div>
+                    <div id="hotspotFields" class="subcard hidden">
+                        <div class="subcard-title">Hotspot and DHCP settings</div>
+                        <div class="grid">
+                            <div><label for="hotspotInterface">Hotspot interface</label><input id="hotspotInterface" value="ether3"><small>IP address, DHCP server and Hotspot server will all use this interface.</small></div>
+                            <div><label for="hotspotSubnet">Hotspot subnet / CIDR</label><input id="hotspotSubnet" value="192.168.100.0/24"><small>Gateway is subnet + 1; DHCP leases run from subnet + 2 through the last usable address.</small></div>
+                            <div><label for="hotspotDnsName">Hotspot DNS name</label><input id="hotspotDnsName" value="phpradius.net"></div>
+                            <div><label for="hotspotHtmlDirectory">HTML directory</label><input id="hotspotHtmlDirectory" value="flash/hotspot"><small>Use the full RouterOS storage path for custom Hotspot pages.</small></div>
+                            <div><label for="hotspotProfileName">Hotspot profile name</label><input id="hotspotProfileName" value="hotspot_profile"></div>
+                            <div><label for="hotspotServerName">Hotspot server name</label><input id="hotspotServerName" value="hotspot_server"></div>
+                            <div><label for="hotspotPoolName">DHCP pool name</label><input id="hotspotPoolName" value="hotspot_dhcp_pool"></div>
+                            <div><label for="hotspotDhcpName">DHCP server name</label><input id="hotspotDhcpName" value="hotspot_dhcp"></div>
+                        </div>
+                        <div id="hotspotPreview" class="pool-preview" aria-live="polite"></div>
+                    </div>
+                </div>
+            </section>
+            <section id="advanced">
+                <div class="section-head">
+                    <div class="num">04</div>
                     <div>
                         <h2>Scale up</h2>
                         <p>Add more VLANs, subscriber profiles and PPPoE listeners.</p>
@@ -824,7 +202,7 @@
             </section>
             <section id="radius">
                 <div class="section-head">
-                    <div class="num">04</div>
+                    <div class="num">05</div>
                     <div>
                         <h2>RADIUS & VPN</h2>
                         <p>Select a PR3S server or provide your own endpoint.</p>
@@ -889,53 +267,11 @@
                 <div id="summary" aria-live="polite"></div>
                 <pre id="output" aria-label="RouterOS script">Your configuration will appear here.</pre>
             </section>
-            <div class="footnote">Review interface names, existing bridges, address ranges and firewall rule order
+                <div class="footnote">Review interface names, existing bridges, address ranges and firewall rule order
                 before importing. Use Safe Mode for remote changes.</div>
         </main>
     </div>
-    <script>
-        const $ = id => document.getElementById(id), value = id => $(id).value.trim(); let generated = '';
-        const servers = { pr3s1: { public: '143.110.244.41', vpn: '192.168.112.1' }, pr3s2: { public: '64.227.158.172', vpn: '192.168.113.1' }, pr3s3: { public: '139.59.168.36', vpn: '192.168.116.1' } };
-        function toggle() { let vpn = value('wanReach') === 'private', selected = value('publicServer'), server = servers[selected]; $('staticFields').classList.toggle('hidden', value('wanMode') !== 'static'); $('pppoeWanFields').classList.toggle('hidden', value('wanMode') !== 'pppoe'); $('vpnFields').classList.toggle('hidden', !vpn); $('radiusIp').readOnly = !!server; $('vpnEndpoint').readOnly = !!server; if (server) { $('radiusIp').value = vpn ? server.vpn : server.public; $('vpnEndpoint').value = server.public } else if (selected !== 'custom') { $('radiusIp').value = ''; $('vpnEndpoint').value = '' } $('radiusIp').placeholder = selected === 'custom' ? 'Enter RADIUS IP' : 'Select a server'; $('vpnEndpoint').placeholder = selected === 'custom' ? 'Enter L2TP server IP' : 'Select a server'; $('bridgeFields').classList.toggle('hidden', value('lanMode') !== 'bridge'); $('vlanFields').classList.toggle('hidden', value('lanMode') !== 'vlan'); $('ipsecField').classList.toggle('hidden', value('vpnIpsec') !== 'yes'); }
-        ['wanMode', 'wanReach', 'lanMode', 'vpnIpsec'].forEach(id => $(id).addEventListener('change', toggle)); $('publicServer').addEventListener('change', () => { $('radiusIp').value = ''; $('vpnEndpoint').value = ''; toggle() }); toggle();
-        function fail(s) { throw Error(s) }
-        function ip(s) { let p = s.split('.'); if (p.length !== 4 || p.some(x => !/^(0|[1-9]\d{0,2})$/.test(x) || +x > 255)) fail('Invalid IPv4 address: ' + s); return p.reduce((n, x) => (n * 256 + Number(x)) >>> 0, 0) }
-        function fmt(n) { return [24, 16, 8, 0].map(b => (n >>> b) & 255).join('.') }
-        function cidr(s) { let m = /^([^/]+)\/(\d{1,2})$/.exec(s); if (!m) fail('Use IP/CIDR format: ' + s); let bits = +m[2]; if (bits < 16 || bits > 30) fail('Customer pools need a prefix from /16 to /30.'); let addr = ip(m[1]), size = 2 ** (32 - bits), net = Math.floor(addr / size) * size; return { addr, net, size, bits, last: net + size - 1 } }
-        function privateRange(n, size) { let end = n + size - 1; return (n >= ip('10.0.0.0') && end <= ip('10.255.255.255')) || (n >= ip('172.16.0.0') && end <= ip('172.31.255.255')) || (n >= ip('192.168.0.0') && end <= ip('192.168.255.255')) }
-        function calcPools(subnet) { let a = cidr(subnet); if (!privateRange(a.net, a.size)) fail('Active subnet must be private'); let start = a.net + 2; if (start >= a.last) fail('Subnet too small for a pool starting at network + 2'); a.addr = a.net + 1; let anchor = ip('1.1.1.0'), net = Math.floor(anchor / a.size) * a.size, e = { net, size: a.size, bits: a.bits, last: net + a.size - 1 }; if (overlap(a, e)) fail('Active subnet overlaps the fixed expired range'); let expStart = e.net + 2, expEnd = e.last - 1; return { a, e, start, expStart, expEnd } }
-        function pools() { return calcPools(value('lanAddress')) }
-        function rows(id, min, max) { return value(id).split(/\r?\n/).map(s => s.trim()).filter(Boolean).map((line, i) => { let parts = line.split(',').map(s => s.trim()); if (parts.length < min || parts.length > max || parts.slice(0, min).some(s => !s)) fail(id + ' line ' + (i + 1) + ': expected ' + min + (max !== min ? '–' + max : '') + ' comma-separated fields'); return parts }) }
-        function overlap(x, y) { return x.net < y.net + y.size && y.net < x.net + x.size }
-        function preview() { try { let { a, e, start, expStart, expEnd } = pools(); $('poolPreview').textContent = 'PPPoE local: ' + fmt(a.addr) + ' | Active: ' + fmt(a.net) + '/' + a.bits + ' → ' + fmt(start) + '–' + fmt(a.last - 1) + ' | Expired: ' + fmt(e.net) + '/' + e.bits + ' → ' + fmt(expStart) + '–' + fmt(expEnd) } catch (err) { $('poolPreview').textContent = err.message } }
-        $('lanAddress').addEventListener('input', preview); preview();
-        function ident(s, name) { if (!/^[A-Za-z0-9_.-]{1,48}$/.test(s)) fail(name + ' must contain only letters, digits, _, . or -'); return s }
-        function literal(s, name) { if (!s || /[\r\n"\\]/.test(s)) fail(name + ' is required and cannot include a quote, backslash or newline'); return '"' + s + '"' }
-        function host(s, name) { if (!s || !/^[-a-zA-Z0-9.]+$/.test(s)) fail('Invalid ' + name); return s }
-        function generate() {
-            let lines = ['# RouterOS 7 - review names, addressing, RADIUS route and firewall ordering before import', '# Use Safe Mode for remote changes. Export and back up the router first.'];
-            let wi = ident(value('wanInterface'), 'WAN interface'), physicalWan = wi, li = ident(value('lanInterface'), 'Customer interface'); if (wi === li) fail('WAN and customer interfaces must differ');
-            let { a, e, start, expStart, expEnd } = pools(); let selected = value('publicServer'); if (!selected) fail('Select PR3S1, PR3S2, PR3S3, or Custom'); let radius = fmt(ip(value('radiusIp'))), secret = literal(value('radiusSecret'), 'RADIUS secret'), service = literal(value('service'), 'Service name'); let mode = value('lanMode'), customer = li;
-            let wanOut = wi, wanClientName = value('wanMode') === 'pppoe' ? ident(value('wanPppoeName'), 'PPPoE WAN name') : '', wanVlan = value('wanVlanId') ? ident(value('wanVlanName'), 'WAN VLAN name') : ''; if (wanClientName && (wanClientName === wi || wanClientName === li || wanClientName === wanVlan)) fail('PPPoE WAN name conflicts with another interface'); if (wanVlan) { let vid = Number(value('wanVlanId')); if (!Number.isInteger(vid) || vid < 1 || vid > 4094) fail('WAN VLAN ID must be 1–4094'); if (wanVlan === wi || wanVlan === li) fail('WAN VLAN name conflicts with another interface') }
-            if (mode === 'bridge') { customer = ident(value('bridgeName'), 'Bridge name'); let extra = value('bridgeExtra') ? value('bridgeExtra').split(',').map(s => ident(s.trim(), 'Bridge port')) : [], ports = [li, ...extra]; if (new Set(ports).size !== ports.length) fail('Bridge ports must be unique'); if (ports.includes(wi) || ports.includes(wanVlan) || ports.includes(wanClientName)) fail('WAN interface cannot be a customer bridge port'); if (customer === wi || ports.includes(customer) || customer === wanClientName || customer === wanVlan) fail('Bridge name conflicts with another interface'); lines.push('/interface bridge', 'add name=' + customer, '/interface bridge port', ...ports.map(port => 'add bridge=' + customer + ' interface=' + port)) }
-            if (mode === 'vlan') { customer = ident(value('vlanName'), 'VLAN name'); let id = +value('vlanId'); if (!Number.isInteger(id) || id < 1 || id > 4094) fail('VLAN ID must be 1–4094'); if (customer === li || customer === wi || customer === wanClientName || customer === wanVlan) fail('VLAN name conflicts with another interface'); lines.push('/interface vlan', 'add name=' + customer + ' interface=' + li + ' vlan-id=' + id) }
-            if (customer === wanClientName) fail('PPPoE WAN name must differ from customer interface');
-            let extraVlans = rows('extraVlans', 3, 3).map(([name, id, parent]) => ({ name: ident(name, 'VLAN name'), id: Number(id), parent: ident(parent, 'VLAN parent') })), createdNames = [customer, wi, li, wanVlan, wanClientName].filter(Boolean); if (mode === 'bridge' && value('bridgeExtra')) createdNames.push(...value('bridgeExtra').split(',').map(s => s.trim())); for (let v of extraVlans) { if (!Number.isInteger(v.id) || v.id < 1 || v.id > 4094) fail('VLAN ID must be 1–4094'); if (createdNames.includes(v.name)) fail('Duplicate interface name: ' + v.name); if (v.parent === wi || v.parent === wanVlan || v.parent === wanClientName || v.name === v.parent) fail('Customer VLAN cannot use WAN as parent'); if (mode === 'bridge' && (v.parent === li || value('bridgeExtra').split(',').map(s => s.trim()).includes(v.parent))) fail('Use the new bridge name as VLAN parent, since customer ports become bridge members'); if (mode === 'vlan' && v.parent === li && v.id === Number(value('vlanId'))) fail('Duplicate VLAN ID on the same parent'); if (extraVlans.some(other => other !== v && other.name === v.parent)) fail('Additional VLAN parent must be an existing interface'); if (extraVlans.some(other => other !== v && other.parent === v.parent && other.id === v.id)) fail('Duplicate VLAN ID on the same parent'); createdNames.push(v.name); lines.push('/interface vlan', 'add name=' + v.name + ' interface=' + v.parent + ' vlan-id=' + v.id) }
-            if (wanVlan) { lines.push('# WAN VLAN', '/interface vlan', 'add name=' + wanVlan + ' interface=' + wi + ' vlan-id=' + value('wanVlanId')); wi = wanVlan }
-            lines.push('# WAN'); if (value('wanMode') === 'dhcp') lines.push('/ip dhcp-client', 'add interface=' + wi + ' disabled=no use-peer-dns=no'); else if (value('wanMode') === 'pppoe') { wanOut = wanClientName; let user = literal(value('wanPppoeUser'), 'PPPoE WAN username'), pass = literal(value('wanPppoePass'), 'PPPoE WAN password'); let cmd = 'add name=' + wanOut + ' interface=' + wi + ' user=' + user + ' password=' + pass + ' add-default-route=yes use-peer-dns=no disabled=no'; if (value('wanPppoeService')) cmd += ' service-name=' + literal(value('wanPppoeService'), 'PPPoE WAN service'); lines.push('/interface pppoe-client', cmd) } else { let w = value('wanAddress').match(/^([^/]+)\/(\d{1,2})$/); if (!w || +w[2] > 32) fail('Enter a valid WAN address/CIDR'); let wa = fmt(ip(w[1])), gw = fmt(ip(value('wanGateway'))); lines.push('/ip address', 'add address=' + wa + '/' + w[2] + ' interface=' + wi, '/ip route', 'add dst-address=0.0.0.0/0 gateway=' + gw) }
-            if (value('wanReach') === 'private') { let endpoint = host(value('vpnEndpoint'), 'L2TP endpoint'), user = literal(value('vpnUser'), 'L2TP username'), pass = literal(value('vpnPass'), 'L2TP password'); let cmd = 'add name=l2tp-radius connect-to=' + endpoint + ' user=' + user + ' password=' + pass + ' add-default-route=no disabled=no'; if (value('vpnIpsec') === 'yes') cmd += ' use-ipsec=yes ipsec-secret=' + literal(value('ipsecSecret'), 'IPsec secret'); lines.push('# RADIUS transport via L2TP', '/interface l2tp-client', cmd, '/ip route', 'add dst-address=' + radius + '/32 gateway=l2tp-radius comment="RADIUS through VPN"'); }
-            let profiles = [{ name: 'pppoe_profile', p: { a, e, start, expStart, expEnd }, activePool: 'pppoe_pool' }]; for (let [name, local] of rows('extraProfiles', 2, 2)) { name = ident(name, 'Profile name'); if (profiles.some(p => p.name === name)) fail('Duplicate profile name: ' + name); let p = calcPools(local); for (let old of profiles) if (overlap(p.a, old.p.a)) fail('Active profile subnets overlap: ' + name + ' and ' + old.name); if (overlap(p.a, e)) fail('Active profile overlaps shared expired pool'); profiles.push({ name, p, activePool: 'pool_' + name }) }
-            let serversList = [{ interface: customer, profile: 'pppoe_profile', service }]; for (let [iface, profile, svc] of rows('extraServers', 3, 3)) { iface = ident(iface, 'PPPoE server interface'); profile = ident(profile, 'PPPoE profile'); if (!profiles.some(p => p.name === profile)) fail('Unknown profile: ' + profile); if ([physicalWan, wanVlan, wanClientName].includes(iface)) fail('PPPoE server cannot use WAN interface'); if (mode === 'bridge' && iface === li) fail('Use bridge name for the customer port in bridge mode'); if (serversList.some(s => s.interface === iface && s.service === svc)) fail('Duplicate PPPoE server interface and service'); serversList.push({ interface: iface, profile, service: literal(svc, 'PPPoE service') }) }
-            lines.push('# PPPoE - RADIUS may override profile addresses with its own attributes', '/ip pool'); for (let item of profiles) { let p = item.p; lines.push('add name=' + item.activePool + ' ranges=' + fmt(p.start) + '-' + fmt(p.a.last - 1)) } lines.push('add name=expired_pool ranges=' + fmt(expStart) + '-' + fmt(expEnd)); lines.push('/ppp profile'); for (let item of profiles) lines.push('add name=' + item.name + ' local-address=' + fmt(item.p.a.addr) + ' remote-address=' + item.activePool); lines.push('/interface pppoe-server server'); for (let s of serversList) lines.push('add interface=' + s.interface + ' service-name=' + s.service + ' default-profile=' + s.profile + ' authentication=pap max-mtu=1480 max-mru=1480 disabled=no'); if ($('bindIp').checked) lines.push('/ip address', 'add address=' + fmt(a.addr) + '/' + a.bits + ' interface=' + customer);
-            let auth = +value('authPort'), acct = +value('acctPort'); if (!Number.isInteger(auth) || auth < 1 || auth > 65535 || !Number.isInteger(acct) || acct < 1 || acct > 65535) fail('RADIUS ports must be 1–65535'); lines.push('# RADIUS', '/ppp aaa', 'set use-radius=yes accounting=yes', '/radius', 'add service=ppp address=' + radius + ' secret=' + secret + ' require-message-auth=no authentication-port=' + auth + ' accounting-port=' + acct + ' timeout=3s'); if ($('coa').checked) lines.push('# Restrict UDP 1700 from the RADIUS source in input firewall before enabling', '/radius incoming', 'set accept=yes');
-            lines.push('# NAT only active customers', '/ip firewall nat'); for (let item of profiles) lines.push('add chain=srcnat src-address=' + fmt(item.p.a.net) + '/' + item.p.a.bits + ' out-interface=' + wanOut + ' action=masquerade comment="active ' + item.name + '"'); if ($('blockExpired').checked) lines.push('# Place this ahead of any broad forward accept rules', '/ip firewall filter', 'add chain=forward src-address=' + fmt(e.net) + '/' + e.bits + ' action=drop comment="expired PPPoE users"')
-            lines.push('# Verification (run separately after import)', '# /interface pppoe-server server print detail', '# /ppp active print detail', '# /radius monitor [find where service=ppp]', '# /ip route print detail where dst-address=' + radius + '/32', '# /ip pool used print');
-            generated = lines.join('\n') + '\n'; $('output').textContent = generated; $('summary').textContent = profiles.map(item => item.name + ': active ' + fmt(item.p.start) + '–' + fmt(item.p.a.last - 1)).join('\n') + '\nShared expired: ' + fmt(expStart) + '–' + fmt(expEnd) + ' (' + fmt(e.net) + '/' + e.bits + ')' + '\n' + serversList.length + ' PPPoE server(s); RADIUS path: ' + (value('wanReach') === 'private' ? 'L2TP' : 'direct'); $('error').textContent = ''; $('copy').disabled = $('download').disabled = false;
-        }
-        $('generate').onclick = () => { try { generate() } catch (err) { generated = ''; $('error').textContent = err.message; $('output').textContent = 'Fix the highlighted issue and generate again.'; $('summary').textContent = ''; $('copy').disabled = $('download').disabled = true } };
-        $('copy').onclick = async () => { await navigator.clipboard.writeText(generated); $('copy').textContent = 'Copied'; setTimeout(() => $('copy').textContent = 'Copy', 1500) };
-        $('download').onclick = () => { let a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([generated], { type: 'text/plain' })); a.download = 'pppoe-radius.rsc'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000) };
-    </script>
+        <script src="app.js" defer></script>
 </body>
 
 </html>
