@@ -42,8 +42,15 @@ function togglePppoe() {
 }
 
 function toggleHotspot() {
-    $('hotspotFields').classList.toggle('hidden', !$('enableHotspot').checked);
+    const enabled = $('enableHotspot').checked;
+    $('hotspotFields').classList.toggle('hidden', !enabled);
     hotspotPreview();
+}
+
+function toggleIpBased() {
+    const enabled = $('enableIpBased').checked;
+    $('ipBasedFields').classList.toggle('hidden', !enabled);
+    ipBasedPreview();
 }
 
 ['wanMode', 'wanReach', 'lanMode', 'vpnIpsec'].forEach(id => $(id).addEventListener('change', toggle));
@@ -54,8 +61,10 @@ $('publicServer').addEventListener('change', () => {
 });
 $('enablePppoe').addEventListener('change', togglePppoe);
 $('enableHotspot').addEventListener('change', toggleHotspot);
+$('enableIpBased').addEventListener('change', toggleIpBased);
 $('lanAddress').addEventListener('input', preview);
 $('hotspotSubnet').addEventListener('input', hotspotPreview);
+$('ipBasedSubnet').addEventListener('input', ipBasedPreview);
 
 function fail(message) { throw Error(message) }
 
@@ -134,6 +143,12 @@ function host(input, name) {
     return input;
 }
 
+function dnsServerList(input) {
+    const addresses = input.split(',').map(address => address.trim()).filter(Boolean);
+    if (!addresses.length || addresses.length > 4) fail('Enter one to four comma-separated router DNS servers.');
+    return addresses.map(address => fmt(ip(address))).join(',');
+}
+
 function preview() {
     if (!$('enablePppoe').checked) {
         $('poolPreview').textContent = '';
@@ -160,10 +175,24 @@ function hotspotPreview() {
     }
 }
 
+function ipBasedPreview() {
+    if (!$('enableIpBased').checked) {
+        $('ipBasedPreview').textContent = '';
+        return;
+    }
+    try {
+        const { active, start, end } = calcHotspotSubnet(value('ipBasedSubnet'));
+        $('ipBasedPreview').textContent = 'Gateway: ' + fmt(active.addr) + ' | Static range: ' + fmt(start) + '–' + fmt(end) + ' | MAC RADIUS login';
+    } catch (error) {
+        $('ipBasedPreview').textContent = error.message;
+    }
+}
+
 function generate() {
     const pppoeEnabled = $('enablePppoe').checked;
     const hotspotEnabled = $('enableHotspot').checked;
-    if (!pppoeEnabled && !hotspotEnabled) fail('Enable PPPoE, Hotspot, or both.');
+    const ipBasedEnabled = $('enableIpBased').checked;
+    if (!pppoeEnabled && !hotspotEnabled && !ipBasedEnabled) fail('Enable PPPoE, Hotspot, IP-based access, or a combination.');
 
     const lines = [
         '# RouterOS 7 - review names, addressing, RADIUS route and firewall ordering before import',
@@ -290,36 +319,65 @@ function generate() {
         lines.push('# RADIUS transport via L2TP', '/interface l2tp-client', command, '/ip route', 'add dst-address=' + radius + '/32 gateway=l2tp-radius comment="RADIUS through VPN"');
     }
 
-    let hotspot = null;
-    if (hotspotEnabled) {
-        const iface = ident(value('hotspotInterface'), 'Hotspot interface');
-        if ([physicalWan, wanVlan, wanClientName, wanInterface].filter(Boolean).includes(iface)) fail('Hotspot interface cannot be the WAN interface');
+    function validateAccessNetwork(label, iface, pool) {
+        if ([physicalWan, wanVlan, wanClientName, wanInterface].filter(Boolean).includes(iface)) fail(label + ' interface cannot be the WAN interface');
         if (pppoeEnabled && mode === 'bridge') {
             const bridgePorts = [lanInterface, ...(value('bridgeExtra') ? value('bridgeExtra').split(',').map(port => port.trim()) : [])];
-            if (bridgePorts.includes(iface)) fail('Hotspot cannot run on a bridge member port; select the bridge interface instead');
+            if (bridgePorts.includes(iface)) fail(label + ' cannot run on a bridge member port; select the bridge interface instead');
         }
-        const pool = calcHotspotSubnet(value('hotspotSubnet'));
-        for (const profile of profiles) if (overlap(pool.active, profile.pool.active)) fail('Hotspot subnet overlaps PPPoE profile subnet: ' + profile.name);
-        if (basePool && overlap(pool.active, basePool.expired)) fail('Hotspot subnet overlaps the reserved expired-user subnet');
+        for (const profile of profiles) if (overlap(pool.active, profile.pool.active)) fail(label + ' subnet overlaps PPPoE profile subnet: ' + profile.name);
+        if (basePool && overlap(pool.active, basePool.expired)) fail(label + ' subnet overlaps the reserved expired-user subnet');
         if (value('wanMode') === 'static') {
             const match = value('wanAddress').match(/^([^/]+)\/(\d{1,2})$/);
             if (match && +match[2] <= 32) {
                 const bits = +match[2];
                 const size = 2 ** (32 - bits);
                 const address = ip(match[1]);
-                if (overlap(pool.active, { net: Math.floor(address / size) * size, size })) fail('Hotspot subnet overlaps the static WAN subnet');
+                if (overlap(pool.active, { net: Math.floor(address / size) * size, size })) fail(label + ' subnet overlaps the static WAN subnet');
             }
         }
+    }
+
+    let hotspot = null;
+    if (hotspotEnabled) {
+        const iface = ident(value('hotspotInterface'), 'Hotspot interface');
+        const pool = calcHotspotSubnet(value('hotspotSubnet'));
+        validateAccessNetwork('Hotspot', iface, pool);
         hotspot = {
             iface,
             pool,
             dnsName: host(value('hotspotDnsName'), 'Hotspot DNS name'),
             htmlDirectory: literal(value('hotspotHtmlDirectory'), 'Hotspot HTML directory'),
+            dnsServers: dnsServerList(value('hotspotDnsServers')),
             profile: ident(value('hotspotProfileName'), 'Hotspot profile name'),
             server: ident(value('hotspotServerName'), 'Hotspot server name'),
-            dhcpPool: ident(value('hotspotPoolName'), 'DHCP pool name'),
+            poolName: ident(value('hotspotPoolName'), 'DHCP pool name'),
             dhcp: ident(value('hotspotDhcpName'), 'DHCP server name')
         };
+    }
+
+    let ipBased = null;
+    if (ipBasedEnabled) {
+        const iface = ident(value('ipBasedInterface'), 'IP-based interface');
+        const pool = calcHotspotSubnet(value('ipBasedSubnet'));
+        validateAccessNetwork('IP-based access', iface, pool);
+        ipBased = {
+            iface,
+            pool,
+            dnsServers: dnsServerList(value('ipBasedDnsServers')),
+            profile: ident(value('ipBasedProfileName'), 'IP-based profile name'),
+            server: ident(value('ipBasedServerName'), 'IP-based server name'),
+            poolName: ident(value('ipBasedPoolName'), 'Static RADIUS pool name'),
+            addBinding: $('ipBasedBinding').checked
+        };
+    }
+
+    if (hotspot && ipBased) {
+        if (hotspot.iface === ipBased.iface) fail('Login Hotspot and IP-based access must use different interfaces');
+        if (overlap(hotspot.pool.active, ipBased.pool.active)) fail('Login Hotspot and IP-based subnets overlap');
+        if (hotspot.profile === ipBased.profile) fail('Login Hotspot and IP-based profile names must differ');
+        if (hotspot.server === ipBased.server) fail('Login Hotspot and IP-based server names must differ');
+        if (hotspot.poolName === ipBased.poolName) fail('Login Hotspot and IP-based pool names must differ');
     }
 
     if (pppoeEnabled) {
@@ -336,18 +394,15 @@ function generate() {
         const gateway = fmt(hotspot.pool.active.addr);
         const network = fmt(hotspot.pool.active.net) + '/' + hotspot.pool.active.bits;
         lines.push(
-            '# Hotspot - IP address, DHCP and Hotspot server share one interface',
+            '# Login Hotspot - IP address, DHCP and Hotspot server share one interface',
             '/ip address',
             'add address=' + gateway + '/' + hotspot.pool.active.bits + ' network=' + fmt(hotspot.pool.active.net) + ' interface=' + hotspot.iface,
             '/ip pool',
-            'add name=' + hotspot.dhcpPool + ' ranges=' + fmt(hotspot.pool.start) + '-' + fmt(hotspot.pool.end),
+            'add name=' + hotspot.poolName + ' ranges=' + fmt(hotspot.pool.start) + '-' + fmt(hotspot.pool.end),
             '/ip dhcp-server',
-            'add name=' + hotspot.dhcp + ' interface=' + hotspot.iface + ' address-pool=' + hotspot.dhcpPool + ' disabled=no',
+            'add name=' + hotspot.dhcp + ' interface=' + hotspot.iface + ' address-pool=' + hotspot.poolName + ' disabled=no',
             '/ip dhcp-server network',
             'add address=' + network + ' gateway=' + gateway + ' dns-server=' + gateway,
-            '# Restrict router DNS access to trusted LANs in the input firewall',
-            '/ip dns',
-            'set allow-remote-requests=yes',
             '/ip hotspot profile',
             'add name=' + hotspot.profile + ' dns-name=' + hotspot.dnsName + ' html-directory=' + hotspot.htmlDirectory + ' login-by=cookie,http-chap,http-pap use-radius=yes',
             '/ip hotspot',
@@ -355,24 +410,50 @@ function generate() {
         );
     }
 
+    if (ipBased) {
+        const gateway = fmt(ipBased.pool.active.addr);
+        const network = fmt(ipBased.pool.active.net) + '/' + ipBased.pool.active.bits;
+        lines.push(
+            '# IP-based access - static clients authenticate by MAC through RADIUS',
+            '/ip address',
+            'add address=' + gateway + '/' + ipBased.pool.active.bits + ' network=' + fmt(ipBased.pool.active.net) + ' interface=' + ipBased.iface,
+            '/ip pool',
+            'add name=' + ipBased.poolName + ' ranges=' + fmt(ipBased.pool.start) + '-' + fmt(ipBased.pool.end),
+            '/ip hotspot profile',
+            'add name=' + ipBased.profile + ' login-by=mac mac-auth-mode=mac-as-username-and-password use-radius=yes',
+            '/ip hotspot',
+            'add addresses-per-mac=unlimited name=' + ipBased.server + ' interface=' + ipBased.iface + ' profile=' + ipBased.profile + ' disabled=no'
+        );
+        if (ipBased.addBinding) lines.push('/ip hotspot ip-binding', 'add address=' + network + ' server=' + ipBased.server + ' type=regular');
+    }
+
+    if (hotspot || ipBased) {
+        const dnsServers = [...new Set([hotspot?.dnsServers, ipBased?.dnsServers].filter(Boolean).flatMap(item => item.split(',')))].join(',');
+        lines.push('# Restrict router DNS access to trusted LANs in the input firewall', '/ip dns', 'set allow-remote-requests=yes servers=' + dnsServers);
+    }
+
     const authPort = +value('authPort');
     const acctPort = +value('acctPort');
     if (!Number.isInteger(authPort) || authPort < 1 || authPort > 65535 || !Number.isInteger(acctPort) || acctPort < 1 || acctPort > 65535) fail('RADIUS ports must be 1–65535');
-    const radiusServices = [pppoeEnabled ? 'ppp' : '', hotspotEnabled ? 'hotspot' : ''].filter(Boolean).join(',');
+    const radiusServices = [pppoeEnabled ? 'ppp' : '', (hotspotEnabled || ipBasedEnabled) ? 'hotspot' : ''].filter(Boolean).join(',');
     lines.push('# RADIUS');
     if (pppoeEnabled) lines.push('/ppp aaa', 'set use-radius=yes accounting=yes');
     lines.push('/radius', 'add service=' + radiusServices + ' address=' + radius + ' secret=' + secret + ' require-message-auth=no authentication-port=' + authPort + ' accounting-port=' + acctPort + ' timeout=3s');
     if ($('coa').checked) lines.push('# Restrict UDP 1700 from the RADIUS source in input firewall before enabling', '/radius incoming', 'set accept=yes');
 
-    lines.push(hotspotEnabled ? '# NAT only enabled customer services' : '# NAT only active customers', '/ip firewall nat');
+    lines.push((hotspotEnabled || ipBasedEnabled) ? '# NAT only enabled customer services' : '# NAT only active customers', '/ip firewall nat');
     for (const profile of profiles) lines.push('add chain=srcnat src-address=' + fmt(profile.pool.active.net) + '/' + profile.pool.active.bits + ' out-interface=' + wanOut + ' action=masquerade comment="active ' + profile.name + '"');
     if (hotspot) lines.push('add chain=srcnat src-address=' + fmt(hotspot.pool.active.net) + '/' + hotspot.pool.active.bits + ' out-interface=' + wanOut + ' action=masquerade comment="Hotspot clients"');
+    if (ipBased) lines.push('add chain=srcnat src-address=' + fmt(ipBased.pool.active.net) + '/' + ipBased.pool.active.bits + ' out-interface=' + wanOut + ' action=masquerade comment="IP-based clients"');
     if (pppoeEnabled && $('blockExpired').checked) lines.push('# Place this ahead of any broad forward accept rules', '/ip firewall filter', 'add chain=forward src-address=' + fmt(basePool.expired.net) + '/' + basePool.expired.bits + ' action=drop comment="expired PPPoE users"');
 
     lines.push('# Verification (run separately after import)');
     if (pppoeEnabled) lines.push('# /interface pppoe-server server print detail', '# /ppp active print detail');
-    if (hotspotEnabled) lines.push('# /ip hotspot print detail', '# /ip dhcp-server lease print');
-    if (pppoeEnabled && !hotspotEnabled) lines.push('# /radius monitor [find where service=ppp]');
+    if (hotspotEnabled) {
+        lines.push('# /ip hotspot print detail', '# /ip dhcp-server lease print');
+    }
+    if (ipBasedEnabled) lines.push('# /ip hotspot active print detail', '# /ip hotspot ip-binding print detail');
+    if (pppoeEnabled && !hotspotEnabled && !ipBasedEnabled) lines.push('# /radius monitor [find where service=ppp]');
     else lines.push('# /radius print detail (verify service=' + radiusServices + ')');
     lines.push('# /ip route print detail where dst-address=' + radius + '/32', '# /ip pool used print');
 
@@ -382,7 +463,8 @@ function generate() {
         summary.push('Shared expired: ' + fmt(basePool.expStart) + '–' + fmt(basePool.expEnd) + ' (' + fmt(basePool.expired.net) + '/' + basePool.expired.bits + ')');
         summary.push(serversList.length + ' PPPoE server(s)');
     }
-    if (hotspot) summary.push('Hotspot: ' + fmt(hotspot.pool.active.addr) + '/' + hotspot.pool.active.bits + ' on ' + hotspot.iface + '; DHCP ' + fmt(hotspot.pool.start) + '–' + fmt(hotspot.pool.end));
+    if (hotspot) summary.push('Login Hotspot: ' + fmt(hotspot.pool.active.addr) + '/' + hotspot.pool.active.bits + ' on ' + hotspot.iface + '; DHCP range ' + fmt(hotspot.pool.start) + '–' + fmt(hotspot.pool.end));
+    if (ipBased) summary.push('IP-based access: ' + fmt(ipBased.pool.active.addr) + '/' + ipBased.pool.active.bits + ' on ' + ipBased.iface + '; static range ' + fmt(ipBased.pool.start) + '–' + fmt(ipBased.pool.end));
     summary.push('RADIUS path: ' + (value('wanReach') === 'private' ? 'L2TP' : 'direct'));
 
     generated = lines.join('\n') + '\n';
@@ -421,3 +503,4 @@ $('download').onclick = () => {
 toggle();
 togglePppoe();
 toggleHotspot();
+toggleIpBased();

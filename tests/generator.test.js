@@ -26,11 +26,15 @@ function createGenerator() {
         extraVlans: '', extraProfiles: '', extraServers: '', bridgeExtra: '',
         hotspotInterface: 'ether3', hotspotSubnet: '192.168.100.0/24', hotspotDnsName: 'phpradius.net',
         hotspotHtmlDirectory: 'flash/hotspot', hotspotProfileName: 'hotspot_profile',
-        hotspotServerName: 'hotspot_server', hotspotPoolName: 'hotspot_dhcp_pool', hotspotDhcpName: 'hotspot_dhcp'
+        hotspotServerName: 'hotspot_server', hotspotPoolName: 'hotspot_dhcp_pool', hotspotDhcpName: 'hotspot_dhcp',
+        hotspotDnsServers: '8.8.8.8,8.8.4.4', ipBasedInterface: 'ether4',
+        ipBasedSubnet: '192.168.110.0/24', ipBasedProfileName: 'ipbased_profile',
+        ipBasedServerName: 'ipbased_server', ipBasedPoolName: 'static', ipBasedDnsServers: '8.8.8.8,8.8.4.4'
     };
     for (const [id, value] of Object.entries(defaults)) elements.get(id).value = value;
     elements.get('enablePppoe').checked = true;
     elements.get('blockExpired').checked = true;
+    elements.get('ipBasedBinding').checked = true;
 
     const context = {
         document: { getElementById: id => elements.get(id), createElement: () => ({ click() {} }) },
@@ -44,7 +48,7 @@ function createGenerator() {
 function generate(overrides = {}) {
     const app = createGenerator();
     for (const [id, value] of Object.entries(overrides)) {
-        if (id === 'enablePppoe' || id === 'enableHotspot' || id === 'blockExpired' || id === 'bindIp') app.elements.get(id).checked = value;
+        if (['enablePppoe', 'enableHotspot', 'enableIpBased', 'blockExpired', 'bindIp', 'ipBasedBinding'].includes(id)) app.elements.get(id).checked = value;
         else app.elements.get(id).value = value;
     }
     app.context.toggle();
@@ -79,6 +83,30 @@ assert.match(hotspotOnly, /add name=hotspot_server interface=ether3 profile=hots
 assert.doesNotMatch(hotspotOnly, /\/ppp aaa|\/ppp profile|\/interface pppoe-server|pppoe_pool|expired_pool|expired PPPoE users|service=ppp/);
 assert.equal((hotspotOnly.match(/add chain=srcnat/g) || []).length, 1);
 
+const ipBasedOnly = generate({
+    enablePppoe: false, enableIpBased: true,
+    wanMode: 'static', wanAddress: '10.10.20.46/24', wanGateway: '10.10.20.1',
+    wanReach: 'private', publicServer: 'pr3s2', vpnUser: 'entered_vpn_user', vpnPass: 'entered_vpn_password'
+});
+assert.match(ipBasedOnly, /add name=l2tp-radius connect-to=64\.227\.158\.172 user="entered_vpn_user" password="entered_vpn_password"/);
+assert.match(ipBasedOnly, /add address=192\.168\.110\.1\/24 network=192\.168\.110\.0 interface=ether4/);
+assert.match(ipBasedOnly, /add name=static ranges=192\.168\.110\.2-192\.168\.110\.254/);
+assert.match(ipBasedOnly, /login-by=mac mac-auth-mode=mac-as-username-and-password use-radius=yes/);
+assert.match(ipBasedOnly, /add addresses-per-mac=unlimited name=ipbased_server interface=ether4 profile=ipbased_profile disabled=no/);
+assert.match(ipBasedOnly, /add address=192\.168\.110\.0\/24 server=ipbased_server type=regular/);
+assert.match(ipBasedOnly, /set allow-remote-requests=yes servers=8\.8\.8\.8,8\.8\.4\.4/);
+assert.match(ipBasedOnly, /add service=hotspot address=192\.168\.113\.1 .*require-message-auth=no/);
+assert.match(ipBasedOnly, /src-address=192\.168\.110\.0\/24 out-interface=ether1 action=masquerade/);
+assert.doesNotMatch(ipBasedOnly, /\/ip dhcp-server|192\.168\.100\.0\/24/);
+
+const allServices = generate({ enableHotspot: true, enableIpBased: true });
+assert.match(allServices, /add name=hotspot_server interface=ether3 profile=hotspot_profile disabled=no/);
+assert.match(allServices, /add addresses-per-mac=unlimited name=ipbased_server interface=ether4 profile=ipbased_profile disabled=no/);
+assert.match(allServices, /add service=ppp,hotspot address=143\.110\.244\.41/);
+assert.equal((allServices.match(/add service=ppp,hotspot/g) || []).length, 1);
+assert.match(allServices, /src-address=192\.168\.100\.0\/24 .*comment="Hotspot clients"/);
+assert.match(allServices, /src-address=192\.168\.110\.0\/24 .*comment="IP-based clients"/);
+
 const l2tpHotspot = generate({ enableHotspot: true, wanReach: 'private', publicServer: 'pr3s2', vpnUser: 'test_vpn_user', vpnPass: 'test_vpn_password' });
 assert.match(l2tpHotspot, /add name=l2tp-radius connect-to=64\.227\.158\.172 user="test_vpn_user" password="test_vpn_password"/);
 assert.match(l2tpHotspot, /add dst-address=192\.168\.113\.1\/32 gateway=l2tp-radius/);
@@ -89,9 +117,13 @@ assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '192.168.2.0/
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '1.1.1.0/24' }), /Hotspot subnet overlaps the reserved expired-user subnet/);
 assert.throws(() => generate({ enableHotspot: true, wanMode: 'static', wanAddress: '192.168.100.2/24', wanGateway: '192.168.100.1' }), /Hotspot subnet overlaps the static WAN subnet/);
 assert.throws(() => generate({ enableHotspot: true, hotspotInterface: 'ether1' }), /Hotspot interface cannot be the WAN interface/);
+assert.throws(() => generate({ enableIpBased: true, ipBasedInterface: 'ether1' }), /IP-based access interface cannot be the WAN interface/);
+assert.throws(() => generate({ enableIpBased: true, ipBasedSubnet: '192.168.2.0/24' }), /IP-based access subnet overlaps PPPoE profile subnet/);
 assert.throws(() => generate({ enableHotspot: true, lanMode: 'bridge', bridgeExtra: 'ether3', hotspotInterface: 'ether3' }), /Hotspot cannot run on a bridge member port/);
-assert.throws(() => generate({ enablePppoe: false, enableHotspot: false }), /Enable PPPoE, Hotspot, or both/);
+assert.throws(() => generate({ enableHotspot: true, enableIpBased: true, ipBasedInterface: 'ether3' }), /must use different interfaces/);
+assert.throws(() => generate({ enableHotspot: true, enableIpBased: true, ipBasedSubnet: '192.168.100.128/25' }), /subnets overlap/);
+assert.throws(() => generate({ enablePppoe: false, enableHotspot: false, enableIpBased: false }), /Enable PPPoE, Hotspot, IP-based access/);
 const hotspot30 = generate({ enableHotspot: true, hotspotSubnet: '192.168.101.0/30' });
 assert.match(hotspot30, /add name=hotspot_dhcp_pool ranges=192\.168\.101\.2-192\.168\.101\.2/);
 
-console.log('Passed: PPPoE-only, Hotspot-only, combined public RADIUS, combined L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');
+console.log('Passed: PPPoE-only, independent login Hotspot and IP-based MAC-RADIUS, all-services output, public/L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');

@@ -18,8 +18,8 @@
             </div>
             <div class="side-label">Configuration</div>
             <nav class="side-nav" aria-label="Sections"><a href="#wan"><span>01</span> WAN uplink</a><a
-                    href="#customers"><span>02</span> PPPoE</a><a href="#hotspot"><span>03</span> Hotspot</a><a href="#advanced"><span>04</span> Scale
-                    up</a><a href="#radius"><span>05</span> RADIUS & VPN</a><a href="#result"><span>06</span> Script
+                    href="#customers"><span>02</span> PPPoE</a><a href="#hotspot"><span>03</span> Hotspot</a><a href="#ipbased"><span>04</span> IP-based</a><a href="#advanced"><span>05</span> Scale
+                    up</a><a href="#radius"><span>06</span> RADIUS & VPN</a><a href="#result"><span>07</span> Script
                     output</a></nav>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser. Credentials
                 stay in the page until you close it.</div>
@@ -92,7 +92,7 @@
                 <div class="section-head">
                     <div class="num">02</div>
                     <div>
-                        <h2>Optional PPPoE</h2>
+                        <h2>PPPoE</h2>
                         <p>Enable PPPoE when this router will serve PPPoE subscribers.</p>
                     </div>
                 </div>
@@ -147,33 +147,61 @@
                 <div class="section-head">
                     <div class="num">03</div>
                     <div>
-                        <h2>Optional Hotspot</h2>
-                        <p>Add a DHCP-backed captive portal on one selected interface.</p>
+                        <h2>Hotspot login</h2>
+                        <p>Optional captive portal with DHCP and username/password login.</p>
                     </div>
                 </div>
                 <div class="card">
                     <div class="options" style="margin-top:0">
-                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enableHotspot" type="checkbox">Enable Hotspot</label></div>
+                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enableHotspot" type="checkbox">Enable login Hotspot</label></div>
                     </div>
                     <div id="hotspotFields" class="subcard hidden">
-                        <div class="subcard-title">Hotspot and DHCP settings</div>
+                        <div class="subcard-title">Login Hotspot settings</div>
                         <div class="grid">
-                            <div><label for="hotspotInterface">Hotspot interface</label><input id="hotspotInterface" value="ether3"><small>IP address, DHCP server and Hotspot server will all use this interface.</small></div>
-                            <div><label for="hotspotSubnet">Hotspot subnet / CIDR</label><input id="hotspotSubnet" value="192.168.100.0/24"><small>Gateway is subnet + 1; DHCP leases run from subnet + 2 through the last usable address.</small></div>
+                            <div><label for="hotspotInterface">Hotspot interface</label><input id="hotspotInterface" value="ether3"><small>IP address, DHCP server and Hotspot server all use this interface.</small></div>
+                            <div><label for="hotspotSubnet">Hotspot subnet / CIDR</label><input id="hotspotSubnet" value="192.168.100.0/24"><small>Gateway is subnet + 1; DHCP leases use subnet + 2 through the last usable address.</small></div>
                             <div><label for="hotspotDnsName">Hotspot DNS name</label><input id="hotspotDnsName" value="phpradius.net"></div>
                             <div><label for="hotspotHtmlDirectory">HTML directory</label><input id="hotspotHtmlDirectory" value="flash/hotspot"><small>Use the full RouterOS storage path for custom Hotspot pages.</small></div>
                             <div><label for="hotspotProfileName">Hotspot profile name</label><input id="hotspotProfileName" value="hotspot_profile"></div>
                             <div><label for="hotspotServerName">Hotspot server name</label><input id="hotspotServerName" value="hotspot_server"></div>
                             <div><label for="hotspotPoolName">DHCP pool name</label><input id="hotspotPoolName" value="hotspot_dhcp_pool"></div>
                             <div><label for="hotspotDhcpName">DHCP server name</label><input id="hotspotDhcpName" value="hotspot_dhcp"></div>
+                            <div><label for="hotspotDnsServers">Router upstream DNS</label><input id="hotspotDnsServers" value="8.8.8.8,8.8.4.4"><small>Comma-separated IPv4 DNS servers.</small></div>
                         </div>
                         <div id="hotspotPreview" class="pool-preview" aria-live="polite"></div>
                     </div>
                 </div>
             </section>
-            <section id="advanced">
+            <section id="ipbased">
                 <div class="section-head">
                     <div class="num">04</div>
+                    <div>
+                        <h2>IP-based / MAC RADIUS</h2>
+                        <p>Optional static-IP access that authenticates clients automatically by MAC address.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="options" style="margin-top:0">
+                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enableIpBased" type="checkbox">Enable IP-based access</label></div>
+                    </div>
+                    <div id="ipBasedFields" class="subcard hidden">
+                        <div class="subcard-title">IP-based access settings</div>
+                        <div class="grid">
+                            <div><label for="ipBasedInterface">IP-based interface</label><input id="ipBasedInterface" value="ether4"><small>Gateway and IP-based Hotspot server use this same interface.</small></div>
+                            <div><label for="ipBasedSubnet">IP-based subnet / CIDR</label><input id="ipBasedSubnet" value="192.168.110.0/24"><small>Clients use static addresses; gateway is subnet + 1.</small></div>
+                            <div><label for="ipBasedProfileName">IP-based profile name</label><input id="ipBasedProfileName" value="ipbased_profile"></div>
+                            <div><label for="ipBasedServerName">IP-based server name</label><input id="ipBasedServerName" value="ipbased_server"></div>
+                            <div><label for="ipBasedPoolName">Static RADIUS pool name</label><input id="ipBasedPoolName" value="static"><small>Available for RADIUS Framed-Pool assignments.</small></div>
+                            <div><label for="ipBasedDnsServers">Router upstream DNS</label><input id="ipBasedDnsServers" value="8.8.8.8,8.8.4.4"><small>Comma-separated IPv4 DNS servers.</small></div>
+                        </div>
+                        <div class="options"><div><label class="check"><input id="ipBasedBinding" type="checkbox" checked>Add a regular Hotspot IP binding for the full IP-based subnet</label><small>The binding is scoped to this generated IP-based server.</small></div></div>
+                        <div id="ipBasedPreview" class="pool-preview" aria-live="polite"></div>
+                    </div>
+                </div>
+            </section>
+            <section id="advanced">
+                <div class="section-head">
+                    <div class="num">05</div>
                     <div>
                         <h2>Scale up</h2>
                         <p>Add more VLANs, subscriber profiles and PPPoE listeners.</p>
@@ -207,7 +235,7 @@
             </section>
             <section id="radius">
                 <div class="section-head">
-                    <div class="num">05</div>
+                    <div class="num">06</div>
                     <div>
                         <h2>RADIUS & VPN</h2>
                         <p>Select a PR3S server or provide your own endpoint.</p>
