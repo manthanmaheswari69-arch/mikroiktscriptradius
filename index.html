@@ -59,7 +59,7 @@
                                 <option value="public">Public IP · direct RADIUS</option>
                             </select></div>
                         <div><label for="wanVlanId">WAN VLAN ID <span class="tag">OPTIONAL</span></label><input
-                                id="wanVlanId" type="number" min="1" max="4094" placeholder="Blank = untagged"></div>
+                                id="wanVlanId" type="number" min="1" max="4094" placeholder="Blank = untagged" aria-describedby="wanVlanIdError"><small id="wanVlanIdError" class="field-error" aria-live="polite"></small></div>
                         <div><label for="wanVlanName">WAN VLAN interface name</label><input id="wanVlanName"
                                 value="vlan-wan"></div>
                     </div>
@@ -119,7 +119,7 @@
                         </div>
                         <div id="vlanFields" class="subcard hidden">
                             <div class="subcard-title">First customer VLAN</div><label for="vlanId">VLAN
-                                ID</label><input id="vlanId" type="number" min="1" max="4094" placeholder="100"><label
+                                ID</label><input id="vlanId" type="number" min="1" max="4094" placeholder="100" aria-describedby="vlanIdError"><small id="vlanIdError" class="field-error" aria-live="polite"></small><label
                                 for="vlanName" style="margin-top:14px">VLAN name</label><input id="vlanName"
                                 value="vlan-pppoe">
                         </div>

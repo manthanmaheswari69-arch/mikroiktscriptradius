@@ -16,7 +16,8 @@ function createGenerator() {
     for (const [, id] of html.matchAll(/\bid="([^"]+)"/g)) {
         const classes = new Set();
         elements.set(id, {
-            value: '', checked: false, textContent: '', disabled: false, readOnly: false, placeholder: '',
+            value: '', checked: false, textContent: '', disabled: false, readOnly: false, placeholder: '', validationMessage: '',
+            setCustomValidity(message) { this.validationMessage = message; },
             classList: {
                 toggle(name, force) {
                     const add = force === undefined ? !classes.has(name) : force;
@@ -136,6 +137,8 @@ assert.throws(() => generate({ wanReach: 'private', vpnUser: 'bad"user', vpnPass
 assert.throws(() => generate({ radiusSecret: '' }), /RADIUS secret is required\. Enter a value and try again\./);
 assert.throws(() => generate({ lanInterface: '' }), /Customer interface is required\. Enter a name and try again\./);
 assert.throws(() => generate({ wanMode: 'static', wanAddress: 'not-an-address', wanGateway: '203.0.113.1' }), /Enter the WAN address in IP\/CIDR format/);
+assert.throws(() => generate({ lanMode: 'vlan', vlanId: '0' }), /VLAN ID from 1 to 4094\. VLAN IDs 0 and 4095 are reserved/);
+assert.throws(() => generate({ wanVlanId: '4095' }), /WAN VLAN ID from 1 to 4094\. VLAN IDs 0 and 4095 are reserved/);
 
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '192.168.2.0/24' }), /Hotspot subnet overlaps PPPoE profile subnet/);
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '1.1.1.0/24' }), /Hotspot subnet overlaps the reserved expired-user subnet/);
@@ -165,5 +168,15 @@ customServerState.elements.get('publicServer').value = 'custom';
 customServerState.context.toggle();
 assert.equal(customServerState.elements.get('radiusField').classList.contains('hidden'), false);
 assert.equal(customServerState.elements.get('vpnEndpointField').classList.contains('hidden'), false);
+
+const vlanFieldState = createGenerator();
+vlanFieldState.elements.get('wanVlanId').value = '4095';
+vlanFieldState.context.validateVlanId('wanVlanId', 'WAN VLAN ID');
+assert.match(vlanFieldState.elements.get('wanVlanIdError').textContent, /must be from 1 to 4094/);
+assert.equal(vlanFieldState.elements.get('wanVlanId').classList.contains('input-error'), true);
+vlanFieldState.elements.get('wanVlanId').value = '100';
+vlanFieldState.context.validateVlanId('wanVlanId', 'WAN VLAN ID');
+assert.equal(vlanFieldState.elements.get('wanVlanIdError').textContent, '');
+assert.equal(vlanFieldState.elements.get('wanVlanId').classList.contains('input-error'), false);
 
 console.log('Passed: PPPoE-only, independent login Hotspot and IP-based MAC-RADIUS, PPP service selection, clear-script control, hidden preset labels, public/L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');

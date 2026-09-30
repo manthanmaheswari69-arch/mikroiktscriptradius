@@ -68,6 +68,21 @@ $('lanAddress').addEventListener('input', preview);
 $('hotspotSubnet').addEventListener('input', hotspotPreview);
 $('ipBasedSubnet').addEventListener('input', ipBasedPreview);
 
+function validateVlanId(id, label) {
+    const input = $(id);
+    const entered = input.value.trim();
+    const message = entered && (!/^\d+$/.test(entered) || +entered < 1 || +entered > 4094)
+        ? label + ' must be from 1 to 4094. VLAN IDs 0 and 4095 are reserved.'
+        : '';
+    input.setCustomValidity(message);
+    input.classList.toggle('input-error', Boolean(message));
+    $(id + 'Error').textContent = message;
+}
+
+[['wanVlanId', 'WAN VLAN ID'], ['vlanId', 'VLAN ID']].forEach(([id, label]) => {
+    $(id).addEventListener('input', () => validateVlanId(id, label));
+});
+
 function fail(message) { throw Error(message) }
 
 function ip(address) {
@@ -249,7 +264,7 @@ function generate() {
         if (mode === 'vlan') {
             customer = ident(value('vlanName'), 'VLAN name');
             const vlanId = +value('vlanId');
-            if (!Number.isInteger(vlanId) || vlanId < 1 || vlanId > 4094) fail('VLAN ID must be 1–4094');
+            if (!Number.isInteger(vlanId) || vlanId < 1 || vlanId > 4094) fail('Use a VLAN ID from 1 to 4094. VLAN IDs 0 and 4095 are reserved.');
             if ([lanInterface, physicalWan, wanClientName, wanVlan].includes(customer)) fail('VLAN name conflicts with another interface');
             lines.push('/interface vlan', 'add name=' + customer + ' interface=' + lanInterface + ' vlan-id=' + vlanId);
         }
@@ -259,7 +274,7 @@ function generate() {
         const createdNames = [customer, physicalWan, lanInterface, wanVlan, wanClientName].filter(Boolean);
         if (mode === 'bridge' && value('bridgeExtra')) createdNames.push(...value('bridgeExtra').split(',').map(port => port.trim()));
         for (const vlan of extraVlans) {
-            if (!Number.isInteger(vlan.id) || vlan.id < 1 || vlan.id > 4094) fail('VLAN ID must be 1–4094');
+            if (!Number.isInteger(vlan.id) || vlan.id < 1 || vlan.id > 4094) fail('Use a VLAN ID from 1 to 4094. VLAN IDs 0 and 4095 are reserved.');
             if (createdNames.includes(vlan.name)) fail('Duplicate interface name: ' + vlan.name);
             if ([physicalWan, wanVlan, wanClientName].includes(vlan.parent) || vlan.name === vlan.parent) fail('Customer VLAN cannot use WAN as parent');
             if (mode === 'bridge' && (vlan.parent === lanInterface || value('bridgeExtra').split(',').map(port => port.trim()).includes(vlan.parent))) fail('Use the new bridge name as VLAN parent, since customer ports become bridge members');
@@ -298,7 +313,7 @@ function generate() {
 
     if (wanVlan) {
         const vlanId = Number(value('wanVlanId'));
-        if (!Number.isInteger(vlanId) || vlanId < 1 || vlanId > 4094) fail('WAN VLAN ID must be 1–4094');
+        if (!Number.isInteger(vlanId) || vlanId < 1 || vlanId > 4094) fail('Use a WAN VLAN ID from 1 to 4094. VLAN IDs 0 and 4095 are reserved.');
         lines.push('# WAN VLAN', '/interface vlan', 'add name=' + wanVlan + ' interface=' + wanInterface + ' vlan-id=' + vlanId);
         wanInterface = wanVlan;
     }
