@@ -72,7 +72,7 @@ function fail(message) { throw Error(message) }
 
 function ip(address) {
     const parts = address.split('.');
-    if (parts.length !== 4 || parts.some(part => !/^(0|[1-9]\d{0,2})$/.test(part) || +part > 255)) fail('Invalid IPv4 address: ' + address);
+    if (parts.length !== 4 || parts.some(part => !/^(0|[1-9]\d{0,2})$/.test(part) || +part > 255)) fail('Enter a valid IPv4 address, such as 192.168.1.1.');
     return parts.reduce((number, part) => (number * 256 + Number(part)) >>> 0, 0);
 }
 
@@ -80,9 +80,9 @@ function fmt(number) { return [24, 16, 8, 0].map(bit => (number >>> bit) & 255).
 
 function cidr(input) {
     const match = /^([^/]+)\/(\d{1,2})$/.exec(input);
-    if (!match) fail('Use IP/CIDR format: ' + input);
+    if (!match) fail('Enter a customer subnet in IP/CIDR format, such as 192.168.10.0/24.');
     const bits = +match[2];
-    if (bits < 16 || bits > 30) fail('Customer pools need a prefix from /16 to /30.');
+    if (bits < 16 || bits > 30) fail('Use a customer subnet prefix from /16 to /30.');
     const address = ip(match[1]);
     const size = 2 ** (32 - bits);
     const net = Math.floor(address / size) * size;
@@ -100,15 +100,15 @@ function overlap(first, second) { return first.net < second.net + second.size &&
 
 function calcPools(subnet) {
     const active = cidr(subnet);
-    if (!privateRange(active.net, active.size)) fail('Active subnet must be private');
+    if (!privateRange(active.net, active.size)) fail('Choose a private PPPoE subnet, for example 192.168.2.0/24.');
     const start = active.net + 2;
-    if (start >= active.last) fail('Subnet too small for a pool starting at network + 2');
+    if (start >= active.last) fail('This PPPoE subnet is too small. Use a larger subnet with room for the router and at least one client.');
     active.addr = active.net + 1;
 
     const anchor = ip('1.1.1.0');
     const net = Math.floor(anchor / active.size) * active.size;
     const expired = { net, size: active.size, bits: active.bits, last: net + active.size - 1 };
-    if (overlap(active, expired)) fail('Active subnet overlaps the fixed expired range');
+    if (overlap(active, expired)) fail('Choose a PPPoE subnet outside the reserved expired-user range.');
 
     return { active, expired, start, expStart: expired.net + 2, expEnd: expired.last - 1 };
 }
@@ -117,7 +117,7 @@ function calcHotspotSubnet(subnet) {
     const active = cidr(subnet);
     const start = active.net + 2;
     const end = active.last - 1;
-    if (start > end) fail('Hotspot subnet must have at least one usable DHCP address after the gateway.');
+    if (start > end) fail('This Hotspot subnet is too small. Use a larger subnet with room for the gateway and at least one client.');
     active.addr = active.net + 1;
     return { active, start, end };
 }
@@ -131,17 +131,26 @@ function rows(id, min, max) {
 }
 
 function ident(input, name) {
-    if (!/^[A-Za-z0-9_.-]{1,48}$/.test(input)) fail(name + ' must contain only letters, digits, _, . or -');
+    if (!input) fail(name + ' is required. Enter a name and try again.');
+    if (!/^[A-Za-z0-9_.-]{1,48}$/.test(input)) fail(name + ' can use only letters, numbers, periods, hyphens, and underscores.');
     return input;
 }
 
 function literal(input, name) {
-    if (!input || /[\r\n"\\]/.test(input)) fail(name + ' is required and cannot include a quote, backslash or newline');
+    if (!input) fail(name + ' is required. Enter a value and try again.');
+    if (/[\r\n"\\]/.test(input)) fail(name + ' cannot include quotes, backslashes, or line breaks.');
+    return '"' + input + '"';
+}
+
+function l2tpCredential(input, name) {
+    if (!input) fail('Enter the ' + name + ' to connect to private RADIUS through L2TP.');
+    if (/[\r\n"\\]/.test(input)) fail(name + ' cannot include quotes, backslashes, or new lines.');
     return '"' + input + '"';
 }
 
 function host(input, name) {
-    if (!input || !/^[-a-zA-Z0-9.]+$/.test(input)) fail('Invalid ' + name);
+    if (!input) fail(name + ' is required. Enter an IP address or hostname.');
+    if (!/^[-a-zA-Z0-9.]+$/.test(input)) fail(name + ' must be an IP address or hostname without spaces.');
     return input;
 }
 
@@ -306,7 +315,7 @@ function generate() {
         lines.push('/interface pppoe-client', command);
     } else {
         const match = value('wanAddress').match(/^([^/]+)\/(\d{1,2})$/);
-        if (!match || +match[2] > 32) fail('Enter a valid WAN address/CIDR');
+        if (!match || +match[2] > 32) fail('Enter the WAN address in IP/CIDR format, such as 203.0.113.2/30.');
         const address = fmt(ip(match[1]));
         const gateway = fmt(ip(value('wanGateway')));
         lines.push('/ip address', 'add address=' + address + '/' + match[2] + ' interface=' + wanInterface, '/ip route', 'add dst-address=0.0.0.0/0 gateway=' + gateway);
@@ -314,8 +323,8 @@ function generate() {
 
     if (value('wanReach') === 'private') {
         const endpoint = host(value('vpnEndpoint'), 'L2TP endpoint');
-        const user = literal(value('vpnUser'), 'L2TP username');
-        const password = literal(value('vpnPass'), 'L2TP password');
+        const user = l2tpCredential(value('vpnUser'), 'L2TP username');
+        const password = l2tpCredential(value('vpnPass'), 'L2TP password');
         let command = 'add name=l2tp-radius connect-to=' + endpoint + ' user=' + user + ' password=' + password + ' add-default-route=no disabled=no';
         if (value('vpnIpsec') === 'yes') command += ' use-ipsec=yes ipsec-secret=' + literal(value('ipsecSecret'), 'IPsec secret');
         lines.push('# RADIUS transport via L2TP', '/interface l2tp-client', command, '/ip route', 'add dst-address=' + radius + '/32 gateway=l2tp-radius comment="RADIUS through VPN"');
@@ -406,7 +415,7 @@ function generate() {
             '/ip dhcp-server network',
             'add address=' + network + ' gateway=' + gateway + ' dns-server=' + gateway,
             '/ip hotspot profile',
-            'add name=' + hotspot.profile + ' dns-name=' + hotspot.dnsName + ' html-directory=' + hotspot.htmlDirectory + ' login-by=cookie,http-chap,http-pap use-radius=yes',
+            'add name=' + hotspot.profile + ' hotspot-address=' + gateway + ' dns-name=' + hotspot.dnsName + ' html-directory=' + hotspot.htmlDirectory + ' login-by=cookie,http-chap,http-pap use-radius=yes',
             '/ip hotspot',
             'add name=' + hotspot.server + ' interface=' + hotspot.iface + ' profile=' + hotspot.profile + ' disabled=no'
         );
@@ -443,10 +452,14 @@ function generate() {
     lines.push('/radius', 'add service=' + radiusServices + ' address=' + radius + ' secret=' + secret + ' require-message-auth=no authentication-port=' + authPort + ' accounting-port=' + acctPort + ' timeout=3s');
     if ($('coa').checked) lines.push('# Restrict UDP 1700 from the RADIUS source in input firewall before enabling', '/radius incoming', 'set accept=yes');
 
-    lines.push((hotspotEnabled || ipBasedEnabled) ? '# NAT only enabled customer services' : '# NAT only active customers', '/ip firewall nat');
-    for (const profile of profiles) lines.push('add chain=srcnat src-address=' + fmt(profile.pool.active.net) + '/' + profile.pool.active.bits + ' out-interface=' + wanOut + ' action=masquerade comment="active ' + profile.name + '"');
-    if (hotspot) lines.push('add chain=srcnat src-address=' + fmt(hotspot.pool.active.net) + '/' + hotspot.pool.active.bits + ' out-interface=' + wanOut + ' action=masquerade comment="Hotspot clients"');
-    if (ipBased) lines.push('add chain=srcnat src-address=' + fmt(ipBased.pool.active.net) + '/' + ipBased.pool.active.bits + ' out-interface=' + wanOut + ' action=masquerade comment="IP-based clients"');
+    const masqueradeNetworks = [
+        ...profiles.map(profile => ({ network: profile.pool.active, comment: 'active ' + profile.name })),
+        ...(hotspot ? [{ network: hotspot.pool.active, comment: 'Hotspot clients' }] : []),
+        ...(ipBased ? [{ network: ipBased.pool.active, comment: 'IP-based clients' }] : [])
+    ];
+    lines.push((hotspotEnabled || ipBasedEnabled) ? '# NAT only enabled customer services' : '# NAT only active customers', '/ip firewall address-list');
+    for (const entry of masqueradeNetworks) lines.push('add list=masquerade_pool address=' + fmt(entry.network.net) + '/' + entry.network.bits + ' comment="' + entry.comment + '"');
+    lines.push('/ip firewall nat', 'add chain=srcnat src-address-list=masquerade_pool out-interface=' + wanOut + ' action=masquerade comment="customer masquerade"');
     if (pppoeEnabled && $('blockExpired').checked) lines.push('# Place this ahead of any broad forward accept rules', '/ip firewall filter', 'add chain=forward src-address=' + fmt(basePool.expired.net) + '/' + basePool.expired.bits + ' action=drop comment="expired PPPoE users"');
 
     lines.push('# Verification (run separately after import)');
@@ -482,7 +495,7 @@ $('generate').onclick = () => {
     } catch (error) {
         generated = '';
         $('error').textContent = error.message;
-        $('output').textContent = 'Fix the highlighted issue and generate again.';
+        $('output').textContent = 'Review the error above, correct that setting, then generate again.';
         $('summary').textContent = '';
         $('clear').disabled = false;
         $('copy').disabled = $('download').disabled = true;

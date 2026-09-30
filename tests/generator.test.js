@@ -70,7 +70,9 @@ const pppoeOnly = generate();
 assert.match(pppoeOnly, /add service=ppp address=143\.110\.244\.41 .*require-message-auth=no/);
 assert.match(pppoeOnly, /# NAT only active customers/);
 assert.match(pppoeOnly, /# \/radius monitor \[find where service=ppp\]/);
-assert.match(pppoeOnly, /add chain=srcnat src-address=192\.168\.2\.0\/24 out-interface=ether1 action=masquerade/);
+assert.match(pppoeOnly, /add list=masquerade_pool address=192\.168\.2\.0\/24 comment="active pppoe_profile"/);
+assert.match(pppoeOnly, /add chain=srcnat src-address-list=masquerade_pool out-interface=ether1 action=masquerade/);
+assert.equal((pppoeOnly.match(/add chain=srcnat/g) || []).length, 1);
 assert.match(pppoeOnly, /comment="expired PPPoE users"/);
 assert.doesNotMatch(pppoeOnly, /\/ip hotspot|\/ip dhcp-server|service=ppp,hotspot/);
 assert.doesNotMatch(pppoeOnly, /chain=srcnat[^\n]*1\.1\.1\./);
@@ -81,10 +83,12 @@ assert.match(publicHotspot, /add name=hotspot_dhcp interface=ether3 address-pool
 assert.match(publicHotspot, /add name=hotspot_server interface=ether3 profile=hotspot_profile disabled=no/);
 assert.match(publicHotspot, /add name=hotspot_dhcp_pool ranges=192\.168\.100\.2-192\.168\.100\.254/);
 assert.match(publicHotspot, /add address=192\.168\.100\.0\/24 gateway=192\.168\.100\.1 dns-server=192\.168\.100\.1/);
+assert.match(publicHotspot, /add name=hotspot_profile hotspot-address=192\.168\.100\.1 dns-name=phpradius\.net/);
 assert.match(publicHotspot, /login-by=cookie,http-chap,http-pap use-radius=yes/);
 assert.match(publicHotspot, /set allow-remote-requests=yes/);
 assert.match(publicHotspot, /add service=ppp,hotspot address=143\.110\.244\.41 .*require-message-auth=no/);
-assert.match(publicHotspot, /chain=srcnat src-address=192\.168\.100\.0\/24 out-interface=ether1 action=masquerade comment="Hotspot clients"/);
+assert.match(publicHotspot, /add list=masquerade_pool address=192\.168\.100\.0\/24 comment="Hotspot clients"/);
+assert.match(publicHotspot, /chain=srcnat src-address-list=masquerade_pool out-interface=ether1 action=masquerade/);
 assert.doesNotMatch(publicHotspot, /chain=srcnat[^\n]*1\.1\.1\./);
 
 const hotspotOnly = generate({ enablePppoe: false, enableHotspot: true, lanInterface: '', lanAddress: '', service: '', extraProfiles: 'ignored-invalid-data' });
@@ -107,7 +111,8 @@ assert.match(ipBasedOnly, /add address=192\.168\.110\.0\/24 server=ipbased_serve
 assert.match(ipBasedOnly, /set allow-remote-requests=yes servers=8\.8\.8\.8,8\.8\.4\.4/);
 assert.match(ipBasedOnly, /add service=hotspot address=192\.168\.113\.1 .*require-message-auth=no/);
 assert.doesNotMatch(ipBasedOnly, /add service=ppp/);
-assert.match(ipBasedOnly, /src-address=192\.168\.110\.0\/24 out-interface=ether1 action=masquerade/);
+assert.match(ipBasedOnly, /add list=masquerade_pool address=192\.168\.110\.0\/24 comment="IP-based clients"/);
+assert.match(ipBasedOnly, /src-address-list=masquerade_pool out-interface=ether1 action=masquerade/);
 assert.doesNotMatch(ipBasedOnly, /\/ip dhcp-server|192\.168\.100\.0\/24/);
 
 const allServices = generate({ enableHotspot: true, enableIpBased: true });
@@ -115,14 +120,22 @@ assert.match(allServices, /add name=hotspot_server interface=ether3 profile=hots
 assert.match(allServices, /add addresses-per-mac=unlimited name=ipbased_server interface=ether4 profile=ipbased_profile disabled=no/);
 assert.match(allServices, /add service=ppp,hotspot address=143\.110\.244\.41/);
 assert.equal((allServices.match(/add service=ppp,hotspot/g) || []).length, 1);
-assert.match(allServices, /src-address=192\.168\.100\.0\/24 .*comment="Hotspot clients"/);
-assert.match(allServices, /src-address=192\.168\.110\.0\/24 .*comment="IP-based clients"/);
+assert.match(allServices, /add list=masquerade_pool address=192\.168\.2\.0\/24 comment="active pppoe_profile"/);
+assert.match(allServices, /add list=masquerade_pool address=192\.168\.100\.0\/24 comment="Hotspot clients"/);
+assert.match(allServices, /add list=masquerade_pool address=192\.168\.110\.0\/24 comment="IP-based clients"/);
+assert.equal((allServices.match(/add chain=srcnat/g) || []).length, 1);
 
 const l2tpHotspot = generate({ enableHotspot: true, wanReach: 'private', publicServer: 'pr3s2', vpnUser: 'test_vpn_user', vpnPass: 'test_vpn_password' });
 assert.match(l2tpHotspot, /add name=l2tp-radius connect-to=64\.227\.158\.172 user="test_vpn_user" password="test_vpn_password"/);
 assert.match(l2tpHotspot, /add dst-address=192\.168\.113\.1\/32 gateway=l2tp-radius/);
 assert.match(l2tpHotspot, /add service=ppp,hotspot address=192\.168\.113\.1 .*require-message-auth=no/);
 assert.match(l2tpHotspot, /add name=hotspot_dhcp interface=ether3/);
+assert.throws(() => generate({ wanReach: 'private' }), /Enter the L2TP username to connect to private RADIUS through L2TP\./);
+assert.throws(() => generate({ wanReach: 'private', vpnUser: 'valid_user' }), /Enter the L2TP password to connect to private RADIUS through L2TP\./);
+assert.throws(() => generate({ wanReach: 'private', vpnUser: 'bad"user', vpnPass: 'valid_password' }), /L2TP username cannot include quotes, backslashes, or new lines\./);
+assert.throws(() => generate({ radiusSecret: '' }), /RADIUS secret is required\. Enter a value and try again\./);
+assert.throws(() => generate({ lanInterface: '' }), /Customer interface is required\. Enter a name and try again\./);
+assert.throws(() => generate({ wanMode: 'static', wanAddress: 'not-an-address', wanGateway: '203.0.113.1' }), /Enter the WAN address in IP\/CIDR format/);
 
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '192.168.2.0/24' }), /Hotspot subnet overlaps PPPoE profile subnet/);
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '1.1.1.0/24' }), /Hotspot subnet overlaps the reserved expired-user subnet/);

@@ -22,7 +22,7 @@ Login Hotspot is off by default. When enabled, it gives clients DHCP addresses a
 | DHCP server | `hotspot_dhcp` |
 | Router upstream DNS | `8.8.8.8,8.8.4.4` |
 
-The gateway is subnet + 1. DHCP leases start at subnet + 2 and end at the last usable address. The generated IP address, DHCP server, and Hotspot server all use the same selected interface. The DHCP network advertises the gateway as both gateway and DNS server.
+The gateway is subnet + 1. DHCP leases start at subnet + 2 and end at the last usable address. The generated IP address, DHCP server, and Hotspot server all use the same selected interface. The DHCP network advertises the gateway as both gateway and DNS server, and the Hotspot profile uses that same gateway as its `hotspot-address`.
 
 ## IP-based / MAC RADIUS
 
@@ -45,7 +45,7 @@ Neither access subnet may overlap the other access section, the main or addition
 
 The RADIUS entry uses `service=hotspot` when either Hotspot section is enabled without PPPoE, `service=ppp` for PPPoE-only output, and `service=ppp,hotspot` only when PPPoE and either Hotspot section are enabled. It retains `require-message-auth=no` and the selected PR3S public/private address mapping. For a private RADIUS path, enter the L2TP credentials for your deployment in the UI. No VPN username or password from an example configuration is embedded in the generator.
 
-Each enabled Hotspot section adds its own `srcnat` rule scoped to its subnet. PPPoE NAT rules stay scoped to the active PPPoE subnets, and the fixed expired pool is not NATed. The expired-user forward drop rule remains available.
+Active PPPoE, Login Hotspot, and IP-based client subnets are added to the `masquerade_pool` firewall address list. A single `srcnat` masquerade rule matches that list, so the fixed expired pool is not NATed. The expired-user forward drop rule remains available.
 
 ## PPPoE
 

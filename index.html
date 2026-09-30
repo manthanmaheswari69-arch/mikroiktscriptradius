@@ -272,9 +272,9 @@
                     <div class="grid">
                         <div id="vpnEndpointField"><label for="vpnEndpoint">L2TP server public IP / hostname</label><input id="vpnEndpoint"
                                 placeholder="Select a server"></div>
-                        <div><label for="vpnUser">L2TP username</label><input id="vpnUser" autocomplete="off"></div>
-                        <div><label for="vpnPass">L2TP password</label><input id="vpnPass" type="password"
-                                autocomplete="off"></div>
+                        <div><label for="vpnUser">L2TP username <span class="tag">REQUIRED</span></label><input id="vpnUser" autocomplete="off" required></div>
+                        <div><label for="vpnPass">L2TP password <span class="tag">REQUIRED</span></label><input id="vpnPass" type="password"
+                                autocomplete="off" required></div>
                         <div><label for="vpnIpsec">Encryption</label><select id="vpnIpsec">
                                 <option value="no">L2TP only</option>
                                 <option value="yes">L2TP / IPsec</option>
