@@ -17,14 +17,23 @@
                 <div>Router<em>Forge</em></div>
             </div>
             <div class="side-label">Configuration</div>
-            <nav class="side-nav" aria-label="Sections"><a href="#wan"><span>01</span> WAN uplink</a><a
-                    href="#customers"><span>02</span> PPPoE</a><a href="#hotspot"><span>03</span> Hotspot</a><a href="#ipbased"><span>04</span> IP-based</a><a href="#advanced"><span>05</span> Scale
-                    up</a><a href="#radius"><span>06</span> RADIUS & VPN</a><a href="#result"><span>07</span> Script
-                    output</a></nav>
+            <nav class="side-nav" aria-label="Configuration sections">
+                <a href="#wan" data-section="wan"><span class="nav-step">01</span><span>WAN uplink</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#customers" data-section="customers"><span class="nav-step">02</span><span>PPPoE</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#hotspot" data-section="hotspot"><span class="nav-step">03</span><span>Hotspot</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#ipbased" data-section="ipbased"><span class="nav-step">04</span><span>Static IP</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#advanced" data-section="advanced"><span class="nav-step">05</span><span>Scale up</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#radius" data-section="radius"><span class="nav-step">06</span><span>RADIUS & VPN</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#result" data-section="result"><span class="nav-step">07</span><span>Script output</span><span class="nav-check" aria-hidden="true">✓</span></a>
+            </nav>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser. Credentials
                 stay in the page until you close it.</div>
         </aside>
+        <nav class="mobile-progress" aria-label="Configuration progress">
+            <a href="#wan" data-section="wan">1</a><a href="#customers" data-section="customers">2</a><a href="#hotspot" data-section="hotspot">3</a><a href="#ipbased" data-section="ipbased">4</a><a href="#advanced" data-section="advanced">5</a><a href="#radius" data-section="radius">6</a><a href="#result" data-section="result">7</a>
+        </nav>
         <main class="workspace">
+            <div class="main-column">
             <div class="topbar">
             <div class="crumb">NETWORK TOOLS <b>/</b> PPPoE + HOTSPOT CONFIGURATOR</div>
                 <div class="badge">ROUTEROS 7 · .RSC EXPORT</div>
@@ -54,10 +63,12 @@
                                 <option value="static">Static IP</option>
                                 <option value="pppoe">PPPoE client</option>
                             </select></div>
-                        <div><label for="wanReach">RADIUS reachability</label><select id="wanReach">
+                        <div class="radius-path-field"><label for="wanReach">RADIUS reachability</label><select id="wanReach" class="visually-hidden">
                                 <option value="private">Private IP · L2TP tunnel</option>
                                 <option value="public">Public IP · direct RADIUS</option>
-                            </select></div>
+                            </select><div class="segmented-control" role="group" aria-label="RADIUS reachability">
+                                <button type="button" data-reach="public">Public IP</button><button type="button" data-reach="private">VPN / L2TP</button>
+                            </div></div>
                         <div><label for="wanVlanId">WAN VLAN ID <span class="tag">OPTIONAL</span></label><input
                                 id="wanVlanId" type="number" min="1" max="4094" placeholder="Blank = untagged" aria-describedby="wanVlanIdError"><small id="wanVlanIdError" class="field-error" aria-live="polite"></small></div>
                         <div><label for="wanVlanName">WAN VLAN interface name</label><input id="wanVlanName"
@@ -97,8 +108,9 @@
                     </div>
                 </div>
                 <div class="card">
-                    <div class="options" style="margin-top:0">
-                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enablePppoe" type="checkbox" checked>Enable PPPoE</label></div>
+                    <div class="service-control">
+                        <label class="service-toggle"><input id="enablePppoe" type="checkbox" checked><span class="toggle-track" aria-hidden="true"></span><span>Enable PPPoE service</span></label>
+                        <span id="pppoeStatus" class="status-badge" role="status">Enabled</span>
                     </div>
                     <div id="pppoeFields" class="service-fields">
                     <div class="grid">
@@ -152,10 +164,11 @@
                     </div>
                 </div>
                 <div class="card">
-                    <div class="options" style="margin-top:0">
-                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enableHotspot" type="checkbox">Enable login Hotspot</label></div>
+                    <div class="service-control">
+                        <label class="service-toggle"><input id="enableHotspot" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable Login Hotspot</span></label>
+                        <span id="hotspotStatus" class="status-badge is-disabled" role="status">Disabled</span>
                     </div>
-                    <div id="hotspotFields" class="subcard hidden">
+                    <div id="hotspotFields" class="subcard service-fields is-collapsed">
                         <div class="subcard-title">Login Hotspot settings</div>
                         <div class="grid">
                             <div><label for="hotspotInterface">Hotspot interface</label><input id="hotspotInterface" value="ether3"><small>IP address, DHCP server and Hotspot server all use this interface.</small></div>
@@ -176,16 +189,23 @@
                 <div class="section-head">
                     <div class="num">04</div>
                     <div>
-                        <h2>IP-based / MAC RADIUS</h2>
-                        <p>Optional static-IP access that authenticates clients automatically by MAC address.</p>
+                        <h2>Static IP + MAC RADIUS</h2>
+                        <p>Optional static-IP access with automatic MAC authentication.</p>
                     </div>
                 </div>
                 <div class="card">
-                    <div class="options" style="margin-top:0">
-                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enableIpBased" type="checkbox">Enable IP-based access</label></div>
+                    <div class="service-control">
+                        <label class="service-toggle"><input id="enableIpBased" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable Static IP + MAC RADIUS</span></label>
+                        <span id="ipBasedStatus" class="status-badge is-disabled" role="status">Disabled</span>
                     </div>
-                    <div id="ipBasedFields" class="subcard hidden">
-                        <div class="subcard-title">IP-based access settings</div>
+                    <div id="ipBasedFields" class="subcard service-fields is-collapsed">
+                        <div class="subcard-title">Automatic MAC authentication</div>
+                        <div class="service-summary-grid" aria-label="Static IP and MAC RADIUS summary">
+                            <div><span>Gateway</span><output id="ipQuickGateway">Not configured</output></div>
+                            <div><span>Static range</span><output id="ipQuickRange">Not configured</output></div>
+                            <div><span>Interface</span><output id="ipQuickInterface">Not configured</output></div>
+                            <div><span>RADIUS pool</span><output id="ipQuickPool">Not configured</output></div>
+                        </div>
                         <div class="grid">
                             <div><label for="ipBasedInterface">IP-based interface</label><input id="ipBasedInterface" value="ether4"><small>Gateway and IP-based Hotspot server use this same interface.</small></div>
                             <div><label for="ipBasedSubnet">IP-based subnet / CIDR</label><input id="ipBasedSubnet" value="192.168.110.0/24"><small>Clients use static addresses; gateway is subnet + 1.</small></div>
@@ -208,28 +228,32 @@
                     </div>
                 </div>
                 <div class="stack">
-                    <div class="multi">
+                    <div class="multi" data-editor="extraVlans">
                         <div class="tag">VLAN</div>
-                        <h3>Additional customer VLANs</h3><label for="extraVlans">Name, VLAN ID, parent interface · one
-                            per line</label><textarea id="extraVlans" rows="3"
-                            placeholder="vlan-pppoe-200,200,ether2&#10;vlan-pppoe-300,300,ether2"></textarea><small>For
-                            a newly created bridge, use its bridge name as the VLAN parent. Add server entries below to
-                            serve these VLANs.</small>
+                        <h3>Additional customer VLANs</h3>
+                        <p class="helper">Add one VLAN at a time, or paste a comma-separated list below.</p>
+                        <div id="extraVlansRows" class="repeatable-rows" aria-label="Additional customer VLAN rows"></div>
+                        <button type="button" class="add-row" data-add-row="extraVlans">+ Add VLAN</button>
+                        <details class="paste-lines"><summary>Paste multiple lines</summary><label for="extraVlans">Name, VLAN ID, parent interface</label><textarea id="extraVlans" rows="3" placeholder="vlan-pppoe-200,200,ether2&#10;vlan-pppoe-300,300,ether2"></textarea></details>
+                        <small>For a newly created bridge, use its bridge name as the VLAN parent. Add server entries below to serve these VLANs.</small>
                     </div>
-                    <div class="multi">
+                    <div class="multi" data-editor="extraProfiles">
                         <div class="tag">PROFILE</div>
-                        <h3>Additional PPP profiles</h3><label for="extraProfiles">Profile name, subnet/CIDR · one per
-                            line</label><textarea id="extraProfiles" rows="3"
-                            placeholder="business,192.168.10.0/24&#10;home,192.168.20.0/24"></textarea><small>Each
-                            profile gets local address subnet + 1 and an active pool starting at + 2. The expired pool
-                            is shared.</small>
+                        <h3>Additional PPP profiles</h3>
+                        <p class="helper">Each profile receives its own active customer pool.</p>
+                        <div id="extraProfilesRows" class="repeatable-rows" aria-label="Additional PPP profile rows"></div>
+                        <button type="button" class="add-row" data-add-row="extraProfiles">+ Add profile</button>
+                        <details class="paste-lines"><summary>Paste multiple lines</summary><label for="extraProfiles">Profile name, subnet/CIDR</label><textarea id="extraProfiles" rows="3" placeholder="business,192.168.10.0/24&#10;home,192.168.20.0/24"></textarea></details>
+                        <small>Each profile gets local address subnet + 1 and an active pool starting at + 2. The expired pool is shared.</small>
                     </div>
-                    <div class="multi">
+                    <div class="multi" data-editor="extraServers">
                         <div class="tag">SERVER</div>
-                        <h3>Additional PPPoE servers</h3><label for="extraServers">Interface, profile name, service name
-                            · one per line</label><textarea id="extraServers" rows="3"
-                            placeholder="vlan-pppoe-200,business,service200&#10;vlan-pppoe-300,home,service300"></textarea><small>The
-                            first server uses pppoe_profile on the customer interface above.</small>
+                        <h3>Additional PPPoE servers</h3>
+                        <p class="helper">Connect a customer interface to one of the PPP profiles above.</p>
+                        <div id="extraServersRows" class="repeatable-rows" aria-label="Additional PPPoE server rows"></div>
+                        <button type="button" class="add-row" data-add-row="extraServers">+ Add server</button>
+                        <details class="paste-lines"><summary>Paste multiple lines</summary><label for="extraServers">Interface, profile name, service name</label><textarea id="extraServers" rows="3" placeholder="vlan-pppoe-200,business,service200&#10;vlan-pppoe-300,home,service300"></textarea></details>
+                        <small>The first server uses pppoe_profile on the customer interface above.</small>
                     </div>
                 </div>
             </section>
@@ -243,13 +267,18 @@
                 </div>
                 <div class="card">
                     <div class="grid">
-                        <div><label for="publicServer">RADIUS server</label><select id="publicServer">
+                        <div class="radius-server-field"><label for="publicServer">RADIUS server</label><select id="publicServer" class="visually-hidden">
                                 <option value="">Select server</option>
                                 <option value="pr3s1">PR3S1</option>
                                 <option value="pr3s2">PR3S2</option>
                                 <option value="pr3s3">PR3S3</option>
                                 <option value="custom">Custom server IP</option>
-                            </select></div>
+                            </select><div class="server-cards" role="group" aria-label="Choose RADIUS server">
+                                <button type="button" class="server-card" data-server="pr3s1">PR3S1</button>
+                                <button type="button" class="server-card" data-server="pr3s2">PR3S2</button>
+                                <button type="button" class="server-card" data-server="pr3s3">PR3S3</button>
+                                <button type="button" class="server-card" data-server="custom">Custom</button>
+                            </div></div>
                         <div id="radiusField"><label for="radiusIp">RADIUS address</label><input id="radiusIp"
                                 placeholder="Select a server" readonly></div>
                         <div><label for="radiusSecret">Shared secret</label><input id="radiusSecret" type="password"
@@ -270,7 +299,7 @@
                 <div id="vpnFields" class="card" style="margin-top:16px">
                     <div class="subcard-title">L2TP path · private WAN</div>
                     <div class="grid">
-                        <div id="vpnEndpointField"><label for="vpnEndpoint">L2TP server public IP / hostname</label><input id="vpnEndpoint"
+                        <div id="vpnEndpointField"><label for="vpnEndpoint">L2TP server public IP / hostname <span id="vpnAutofill" class="tag">AUTO-FILLED</span></label><input id="vpnEndpoint"
                                 placeholder="Select a server"></div>
                         <div><label for="vpnUser">L2TP username <span class="tag">REQUIRED</span></label><input id="vpnUser" autocomplete="off" required></div>
                         <div><label for="vpnPass">L2TP password <span class="tag">REQUIRED</span></label><input id="vpnPass" type="password"
@@ -292,17 +321,29 @@
                         <h2>RouterOS script</h2>
                         <p>Generate, inspect, then copy or download your configuration.</p>
                     </div>
-                    <div class="actions"><button id="generate">Generate script</button><button id="clear"
+                    <div class="actions" aria-label="Script actions"><button id="generate">Generate script</button><button id="clear"
                             class="secondary" disabled>Clear script</button><button id="copy"
                             class="secondary" disabled>Copy</button><button id="download" class="secondary"
                             disabled>Download .rsc</button></div>
                 </div>
                 <div id="error" role="alert"></div>
                 <div id="summary" aria-live="polite"></div>
-                <pre id="output" aria-label="RouterOS script">Your configuration will appear here.</pre>
+                <div class="code-editor-shell"><div class="code-editor-meta"><span>ROUTEROS 7 .RSC</span><span id="scriptState">Not generated</span></div><pre id="output" class="is-empty" aria-label="RouterOS script">Your configuration will appear here.</pre></div>
             </section>
                 <div class="footnote">Review interface names, existing bridges, address ranges and firewall rule order
                 before importing. Use Safe Mode for remote changes.</div>
+            </div>
+            <details id="liveSummary" class="live-summary" open>
+                <summary><span>Live configuration</span><span class="summary-status">Updates as you edit</span></summary>
+                <div class="summary-list">
+                    <div><span>WAN</span><output id="summaryWan">DHCP on ether1</output></div>
+                    <div><span>Services</span><output id="summaryServices">PPPoE</output></div>
+                    <div><span>PPPoE</span><output id="summaryPppoe">Not configured</output></div>
+                    <div><span>Hotspot</span><output id="summaryHotspot">Disabled</output></div>
+                    <div><span>Static IP</span><output id="summaryIpBased">Disabled</output></div>
+                    <div><span>RADIUS</span><output id="summaryRadius">Select a server</output></div>
+                </div>
+            </details>
         </main>
     </div>
         <script src="app.js" defer></script>

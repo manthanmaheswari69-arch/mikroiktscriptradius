@@ -20,6 +20,7 @@ function toggle() {
     $('vpnEndpointField').classList.toggle('hidden', selected !== 'custom');
     $('radiusIp').readOnly = !!server;
     $('vpnEndpoint').readOnly = !!server;
+    $('vpnAutofill').classList.toggle('hidden', !server);
 
     if (server) {
         $('radiusIp').value = vpn ? server.vpn : server.public;
@@ -34,25 +35,33 @@ function toggle() {
     $('bridgeFields').classList.toggle('hidden', value('lanMode') !== 'bridge');
     $('vlanFields').classList.toggle('hidden', value('lanMode') !== 'vlan');
     $('ipsecField').classList.toggle('hidden', value('vpnIpsec') !== 'yes');
+    updateChoiceControls();
+    updateLiveSummary();
 }
 
 function togglePppoe() {
     const enabled = $('enablePppoe').checked;
-    $('pppoeFields').classList.toggle('hidden', !enabled);
-    $('advanced').classList.toggle('hidden', !enabled);
+    $('pppoeFields').classList.toggle('is-collapsed', !enabled);
+    $('advanced').classList.toggle('is-collapsed', !enabled);
+    updateServiceStatus('pppoeStatus', enabled);
     preview();
+    updateLiveSummary();
 }
 
 function toggleHotspot() {
     const enabled = $('enableHotspot').checked;
-    $('hotspotFields').classList.toggle('hidden', !enabled);
+    $('hotspotFields').classList.toggle('is-collapsed', !enabled);
+    updateServiceStatus('hotspotStatus', enabled);
     hotspotPreview();
+    updateLiveSummary();
 }
 
 function toggleIpBased() {
     const enabled = $('enableIpBased').checked;
-    $('ipBasedFields').classList.toggle('hidden', !enabled);
+    $('ipBasedFields').classList.toggle('is-collapsed', !enabled);
+    updateServiceStatus('ipBasedStatus', enabled);
     ipBasedPreview();
+    updateLiveSummary();
 }
 
 ['wanMode', 'wanReach', 'lanMode', 'vpnIpsec'].forEach(id => $(id).addEventListener('change', toggle));
@@ -82,6 +91,125 @@ function validateVlanId(id, label) {
 [['wanVlanId', 'WAN VLAN ID'], ['vlanId', 'VLAN ID']].forEach(([id, label]) => {
     $(id).addEventListener('input', () => validateVlanId(id, label));
 });
+
+function updateServiceStatus(id, enabled) {
+    const badge = $(id);
+    badge.textContent = enabled ? 'Enabled' : 'Disabled';
+    badge.classList.toggle('is-disabled', !enabled);
+}
+
+function safeRange(subnet, kind) {
+    try {
+        const range = kind === 'pppoe' ? calcPools(subnet) : calcHotspotSubnet(subnet);
+        return kind === 'pppoe'
+            ? fmt(range.active.addr) + ' | ' + fmt(range.start) + '-' + fmt(range.active.last - 1)
+            : fmt(range.active.addr) + ' | ' + fmt(range.start) + '-' + fmt(range.end);
+    } catch {
+        return 'Check subnet';
+    }
+}
+
+function updateLiveSummary() {
+    const wanModes = { dhcp: 'DHCP', static: 'Static IP', pppoe: 'PPPoE client' };
+    const selected = value('publicServer');
+    const server = servers[selected];
+    const wanVlan = value('wanVlanId') ? ' via ' + value('wanVlanName') : '';
+    const enabledServices = [
+        $('enablePppoe').checked ? 'PPPoE' : '',
+        $('enableHotspot').checked ? 'Hotspot' : '',
+        $('enableIpBased').checked ? 'Static IP + MAC' : ''
+    ].filter(Boolean).join(', ') || 'None enabled';
+    const pppoe = $('enablePppoe').checked ? safeRange(value('lanAddress'), 'pppoe') : 'Disabled';
+    const hotspot = $('enableHotspot').checked ? safeRange(value('hotspotSubnet'), 'hotspot') : 'Disabled';
+    const ipBased = $('enableIpBased').checked ? safeRange(value('ipBasedSubnet'), 'hotspot') : 'Disabled';
+    const reach = value('wanReach') === 'private' ? 'VPN / L2TP' : 'Public IP';
+    const radius = value('radiusIp') || 'Select a server';
+
+    $('summaryWan').textContent = (wanModes[value('wanMode')] || 'WAN') + ' on ' + value('wanInterface') + wanVlan;
+    $('summaryServices').textContent = enabledServices;
+    $('summaryPppoe').textContent = pppoe;
+    $('summaryHotspot').textContent = hotspot;
+    $('summaryIpBased').textContent = ipBased;
+    $('summaryRadius').textContent = (server ? selected.toUpperCase() : selected === 'custom' ? 'Custom' : 'No server') + ' | ' + reach + ' | ' + radius;
+    $('ipQuickGateway').textContent = safeRange(value('ipBasedSubnet'), 'hotspot').split(' | ')[0];
+    $('ipQuickRange').textContent = safeRange(value('ipBasedSubnet'), 'hotspot').split(' | ')[1] || 'Check subnet';
+    $('ipQuickInterface').textContent = value('ipBasedInterface') || 'Not configured';
+    $('ipQuickPool').textContent = value('ipBasedPoolName') || 'Not configured';
+}
+
+function updateChoiceControls() {
+    if (!document.querySelectorAll) return;
+    document.querySelectorAll('[data-reach]').forEach(button => {
+        const selected = button.dataset.reach === value('wanReach');
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-pressed', String(selected));
+    });
+    document.querySelectorAll('[data-server]').forEach(button => {
+        const selected = button.dataset.server === value('publicServer');
+        button.classList.toggle('is-selected', selected);
+        button.setAttribute('aria-pressed', String(selected));
+    });
+}
+
+const liveSummaryInputs = [
+    'wanInterface', 'wanMode', 'wanVlanId', 'wanVlanName', 'lanAddress', 'hotspotSubnet', 'ipBasedSubnet',
+    'ipBasedInterface', 'ipBasedPoolName', 'publicServer', 'radiusIp', 'wanReach'
+];
+liveSummaryInputs.forEach(id => $(id).addEventListener('input', updateLiveSummary));
+
+function clearInputError(input) {
+    if (!input || !input.parentElement) return;
+    input.removeAttribute('aria-invalid');
+    input.classList.remove('input-error');
+    const message = input.parentElement.querySelector('.input-validation-error');
+    if (message) message.remove();
+}
+
+function clearAllInputErrors() {
+    if (!document.querySelectorAll) return;
+    document.querySelectorAll('[aria-invalid="true"]').forEach(clearInputError);
+}
+
+function errorField(message) {
+    const mappings = [
+        [/L2TP username/i, 'vpnUser'], [/L2TP password/i, 'vpnPass'], [/IPsec secret/i, 'ipsecSecret'],
+        [/L2TP endpoint/i, 'vpnEndpoint'], [/RADIUS secret/i, 'radiusSecret'], [/RADIUS.*port/i, 'authPort'],
+        [/WAN VLAN/i, 'wanVlanId'], [/VLAN ID/i, 'vlanId'], [/WAN address|WAN gateway/i, 'wanAddress'],
+        [/Hotspot.*interface/i, 'hotspotInterface'], [/Hotspot.*subnet|Hotspot subnet/i, 'hotspotSubnet'],
+        [/IP-based.*interface|different interfaces/i, 'ipBasedInterface'], [/IP-based.*subnet|IP-based subnet/i, 'ipBasedSubnet'],
+        [/Customer interface/i, 'lanInterface'], [/PPPoE.*subnet|Active subnet|expired-user/i, 'lanAddress'],
+        [/profile/i, 'extraProfiles'], [/PPPoE server/i, 'extraServers'], [/VLAN/i, 'extraVlans'],
+        [/RADIUS address|IPv4 address/i, 'radiusIp']
+    ];
+    const match = mappings.find(([pattern]) => pattern.test(message));
+    return match && match[1];
+}
+
+function showInputError(id, message) {
+    const input = $(id);
+    if (!input || !input.parentElement || !document.createElement) return;
+    clearInputError(input);
+    input.setAttribute('aria-invalid', 'true');
+    input.classList.add('input-error');
+    const detail = document.createElement('small');
+    detail.className = 'input-validation-error';
+    detail.textContent = message;
+    input.parentElement.append(detail);
+    if (typeof input.scrollIntoView === 'function') input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (typeof input.focus === 'function') input.focus({ preventScroll: true });
+}
+
+function clearEditedInputError(event) {
+    clearInputError(event.target);
+    updateLiveSummary();
+}
+
+if (document.querySelectorAll) {
+    document.querySelectorAll('input, select, textarea').forEach(input => {
+        input.addEventListener('input', clearEditedInputError);
+        input.addEventListener('change', clearEditedInputError);
+    });
+}
 
 function fail(message) { throw Error(message) }
 
@@ -142,6 +270,81 @@ function rows(id, min, max) {
         const parts = line.split(',').map(part => part.trim());
         if (parts.length < min || parts.length > max || parts.slice(0, min).some(part => !part)) fail(id + ' line ' + (index + 1) + ': expected ' + min + (max !== min ? '–' + max : '') + ' comma-separated fields');
         return parts;
+    });
+}
+
+const editorConfigs = {
+    extraVlans: {
+        labels: ['VLAN name', 'VLAN ID', 'Parent interface'],
+        placeholders: ['vlan-pppoe-200', '200', 'ether2']
+    },
+    extraProfiles: {
+        labels: ['Profile name', 'Subnet / CIDR'],
+        placeholders: ['business', '192.168.10.0/24']
+    },
+    extraServers: {
+        labels: ['Interface', 'Profile name', 'Service name'],
+        placeholders: ['vlan-pppoe-200', 'business', 'service200']
+    }
+};
+
+function editorRows(id) {
+    return value(id).split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => line.split(',').map(part => part.trim()));
+}
+
+function syncEditor(id) {
+    const container = $(id + 'Rows');
+    const values = [...container.querySelectorAll('.repeatable-row')]
+        .map(row => [...row.querySelectorAll('input')].map(input => input.value.trim()))
+        .filter(parts => parts.some(Boolean));
+    $(id).value = values.map(parts => parts.join(',')).join('\n');
+}
+
+function addEditorRow(id, values = []) {
+    const config = editorConfigs[id];
+    const container = $(id + 'Rows');
+    const row = document.createElement('div');
+    row.className = 'repeatable-row';
+    row.style.setProperty('--fields', config.labels.length);
+    config.labels.forEach((label, index) => {
+        const field = document.createElement('div');
+        const fieldLabel = document.createElement('label');
+        const input = document.createElement('input');
+        fieldLabel.textContent = label;
+        input.placeholder = config.placeholders[index];
+        input.value = values[index] || '';
+        input.addEventListener('input', () => syncEditor(id));
+        field.append(fieldLabel, input);
+        row.append(field);
+    });
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-row';
+    remove.textContent = 'Remove';
+    remove.setAttribute('aria-label', 'Remove row');
+    remove.addEventListener('click', () => {
+        row.remove();
+        syncEditor(id);
+    });
+    row.append(remove);
+    container.append(row);
+}
+
+function renderEditor(id) {
+    const container = $(id + 'Rows');
+    container.textContent = '';
+    const values = editorRows(id);
+    (values.length ? values : [[]]).forEach(parts => addEditorRow(id, parts));
+}
+
+function initEditors() {
+    if (!document.querySelectorAll) return;
+    Object.keys(editorConfigs).forEach(id => {
+        renderEditor(id);
+        $(id).addEventListener('input', () => renderEditor(id));
+    });
+    document.querySelectorAll('[data-add-row]').forEach(button => {
+        button.addEventListener('click', () => addEditorRow(button.dataset.addRow));
     });
 }
 
@@ -498,19 +701,83 @@ function generate() {
     summary.push('RADIUS path: ' + (value('wanReach') === 'private' ? 'L2TP' : 'direct'));
 
     generated = lines.join('\n') + '\n';
-    $('output').textContent = generated;
+    renderScript(generated);
     $('summary').textContent = summary.join('\n');
     $('error').textContent = '';
     $('clear').disabled = $('copy').disabled = $('download').disabled = false;
 }
 
+function initChoiceCards() {
+    if (!document.querySelectorAll) return;
+    document.querySelectorAll('[data-reach]').forEach(button => {
+        button.addEventListener('click', () => {
+            $('wanReach').value = button.dataset.reach;
+            toggle();
+        });
+    });
+    document.querySelectorAll('[data-server]').forEach(button => {
+        button.addEventListener('click', () => {
+            $('publicServer').value = button.dataset.server;
+            $('radiusIp').value = '';
+            $('vpnEndpoint').value = '';
+            toggle();
+        });
+    });
+}
+
+function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
+function highlightLine(line) {
+    if (line.startsWith('#')) return '<span class="syntax-comment">' + escapeHtml(line) + '</span>';
+    const path = line.match(/^(\/[^\s]+)/);
+    const rest = escapeHtml(path ? line.slice(path[0].length) : line)
+        .replace(/\b([A-Za-z][\w-]*)=/g, '<span class="syntax-key">$1</span>=');
+    return (path ? '<span class="syntax-path">' + escapeHtml(path[0]) + '</span>' : '') + rest;
+}
+
+function renderScript(script) {
+    const output = $('output');
+    const empty = !script;
+    output.classList.toggle('is-empty', empty);
+    output.textContent = empty ? 'Your configuration will appear here.' : script;
+    $('scriptState').textContent = empty ? 'Not generated' : script.trimEnd().split('\n').length + ' lines';
+    if ('innerHTML' in output && !empty) {
+        output.innerHTML = script.trimEnd().split('\n').map((line, index) => '<span class="code-line"><span class="line-number">' + (index + 1) + '</span>' + highlightLine(line || ' ') + '</span>').join('\n');
+    }
+}
+
+function initNavigation() {
+    if (!document.querySelectorAll || typeof IntersectionObserver === 'undefined') return;
+    const sections = [...document.querySelectorAll('main section[id]')];
+    const setActive = id => {
+        const order = sections.map(section => section.id);
+        const activeIndex = order.indexOf(id);
+        document.querySelectorAll('[data-section]').forEach(link => {
+            const index = order.indexOf(link.dataset.section);
+            link.classList.toggle('is-active', link.dataset.section === id);
+            link.classList.toggle('is-complete', index >= 0 && index < activeIndex);
+        });
+    };
+    const observer = new IntersectionObserver(entries => {
+        const visible = entries.filter(entry => entry.isIntersecting).sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+        if (visible) setActive(visible.target.id);
+    }, { rootMargin: '-18% 0px -70% 0px', threshold: [0.05, 0.35] });
+    sections.forEach(section => observer.observe(section));
+    setActive(sections[0]?.id);
+}
+
 $('generate').onclick = () => {
+    clearAllInputErrors();
     try {
         generate();
     } catch (error) {
         generated = '';
         $('error').textContent = error.message;
-        $('output').textContent = 'Review the error above, correct that setting, then generate again.';
+        const invalidField = errorField(error.message);
+        if (invalidField) showInputError(invalidField, error.message);
+        renderScript('');
         $('summary').textContent = '';
         $('clear').disabled = false;
         $('copy').disabled = $('download').disabled = true;
@@ -519,16 +786,17 @@ $('generate').onclick = () => {
 
 $('clear').onclick = () => {
     generated = '';
+    clearAllInputErrors();
     $('error').textContent = '';
     $('summary').textContent = '';
-    $('output').textContent = 'Your configuration will appear here.';
+    renderScript('');
     $('copy').textContent = 'Copy';
     $('clear').disabled = $('copy').disabled = $('download').disabled = true;
 };
 
 $('copy').onclick = async () => {
     await navigator.clipboard.writeText(generated);
-    $('copy').textContent = 'Copied';
+    $('copy').textContent = 'Copied ✓';
     setTimeout(() => $('copy').textContent = 'Copy', 1500);
 };
 
@@ -544,3 +812,6 @@ toggle();
 togglePppoe();
 toggleHotspot();
 toggleIpBased();
+initChoiceCards();
+initEditors();
+initNavigation();

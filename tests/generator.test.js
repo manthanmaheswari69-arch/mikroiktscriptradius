@@ -9,6 +9,10 @@ const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 assert.match(html, /href="styles\.css"/);
 assert.match(html, /src="app\.js" defer/);
 assert.match(html, /id="clear"/);
+assert.match(html, /id="liveSummary"/);
+assert.match(html, /id="extraVlansRows"/);
+assert.match(html, /data-server="pr3s3"/);
+assert.match(html, /id="scriptState"/);
 assert.doesNotMatch(html, /PR3S1\s*[·-]\s*143\.110\.244\.41/);
 
 function createGenerator() {
@@ -131,6 +135,11 @@ assert.match(l2tpHotspot, /add name=l2tp-radius connect-to=64\.227\.158\.172 use
 assert.match(l2tpHotspot, /add dst-address=192\.168\.113\.1\/32 gateway=l2tp-radius/);
 assert.match(l2tpHotspot, /add service=ppp,hotspot address=192\.168\.113\.1 .*require-message-auth=no/);
 assert.match(l2tpHotspot, /add name=hotspot_dhcp interface=ether3/);
+const pr3s3Public = generate({ publicServer: 'pr3s3' });
+assert.match(pr3s3Public, /add service=ppp address=139\.59\.168\.36 /);
+const pr3s3Private = generate({ publicServer: 'pr3s3', wanReach: 'private', vpnUser: 'test_vpn_user', vpnPass: 'test_vpn_password' });
+assert.match(pr3s3Private, /connect-to=139\.59\.168\.36/);
+assert.match(pr3s3Private, /add service=ppp address=192\.168\.116\.1 /);
 assert.throws(() => generate({ wanReach: 'private' }), /Enter the L2TP username to connect to private RADIUS through L2TP\./);
 assert.throws(() => generate({ wanReach: 'private', vpnUser: 'valid_user' }), /Enter the L2TP password to connect to private RADIUS through L2TP\./);
 assert.throws(() => generate({ wanReach: 'private', vpnUser: 'bad"user', vpnPass: 'valid_password' }), /L2TP username cannot include quotes, backslashes, or new lines\./);
@@ -178,5 +187,21 @@ vlanFieldState.elements.get('wanVlanId').value = '100';
 vlanFieldState.context.validateVlanId('wanVlanId', 'WAN VLAN ID');
 assert.equal(vlanFieldState.elements.get('wanVlanIdError').textContent, '');
 assert.equal(vlanFieldState.elements.get('wanVlanId').classList.contains('input-error'), false);
+
+const dashboardState = createGenerator();
+assert.match(dashboardState.elements.get('summaryWan').textContent, /DHCP on ether1/);
+assert.match(dashboardState.elements.get('summaryRadius').textContent, /PR3S1 \| Public IP \| 143\.110\.244\.41/);
+dashboardState.elements.get('enableHotspot').checked = true;
+dashboardState.context.toggleHotspot();
+assert.equal(dashboardState.elements.get('hotspotFields').classList.contains('is-collapsed'), false);
+assert.equal(dashboardState.elements.get('hotspotStatus').textContent, 'Enabled');
+dashboardState.elements.get('enablePppoe').checked = false;
+dashboardState.context.togglePppoe();
+assert.equal(dashboardState.elements.get('pppoeFields').classList.contains('is-collapsed'), true);
+assert.equal(dashboardState.elements.get('advanced').classList.contains('is-collapsed'), true);
+dashboardState.elements.get('enableIpBased').checked = true;
+dashboardState.context.toggleIpBased();
+assert.equal(dashboardState.elements.get('ipBasedFields').classList.contains('is-collapsed'), false);
+assert.equal(dashboardState.elements.get('ipBasedStatus').textContent, 'Enabled');
 
 console.log('Passed: PPPoE-only, independent login Hotspot and IP-based MAC-RADIUS, PPP service selection, clear-script control, hidden preset labels, public/L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');
