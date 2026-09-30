@@ -245,9 +245,9 @@
                     <div class="grid">
                         <div><label for="publicServer">RADIUS server</label><select id="publicServer">
                                 <option value="">Select server</option>
-                                <option value="pr3s1">PR3S1 · 143.110.244.41</option>
-                                <option value="pr3s2">PR3S2 · 64.227.158.172</option>
-                                <option value="pr3s3">PR3S3 · 139.59.168.36</option>
+                                <option value="pr3s1">PR3S1</option>
+                                <option value="pr3s2">PR3S2</option>
+                                <option value="pr3s3">PR3S3</option>
                                 <option value="custom">Custom server IP</option>
                             </select></div>
                         <div id="radiusField"><label for="radiusIp">RADIUS address</label><input id="radiusIp"
@@ -270,7 +270,7 @@
                 <div id="vpnFields" class="card" style="margin-top:16px">
                     <div class="subcard-title">L2TP path · private WAN</div>
                     <div class="grid">
-                        <div><label for="vpnEndpoint">L2TP server public IP / hostname</label><input id="vpnEndpoint"
+                        <div id="vpnEndpointField"><label for="vpnEndpoint">L2TP server public IP / hostname</label><input id="vpnEndpoint"
                                 placeholder="Select a server"></div>
                         <div><label for="vpnUser">L2TP username</label><input id="vpnUser" autocomplete="off"></div>
                         <div><label for="vpnPass">L2TP password</label><input id="vpnPass" type="password"
@@ -292,7 +292,8 @@
                         <h2>RouterOS script</h2>
                         <p>Generate, inspect, then copy or download your configuration.</p>
                     </div>
-                    <div class="actions"><button id="generate">Generate script</button><button id="copy"
+                    <div class="actions"><button id="generate">Generate script</button><button id="clear"
+                            class="secondary" disabled>Clear script</button><button id="copy"
                             class="secondary" disabled>Copy</button><button id="download" class="secondary"
                             disabled>Download .rsc</button></div>
                 </div>

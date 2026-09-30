@@ -2,6 +2,8 @@
 
 Open `index.html` in a browser. The generator runs locally and exports a RouterOS 7 `.rsc` script. The UI, styles, and generator logic live in separate files: `index.html`, `styles.css`, and `app.js`.
 
+The output toolbar includes **Clear script**, which removes the generated output without changing the form. Preconfigured PR3S addresses are kept out of the visible server selector and address fields; address entry is shown only when **Custom server IP** is selected. The required address is still included in the generated RouterOS script.
+
 PPPoE, login Hotspot, and IP-based/MAC-RADIUS access are three independent sections. Enable any one of them or combine them. At least one customer service must be enabled.
 
 ## Login Hotspot
@@ -41,7 +43,7 @@ Router DNS remote requests are enabled when either Hotspot section is generated;
 
 Neither access subnet may overlap the other access section, the main or additional PPPoE subnets, the fixed expired-user subnet, or a static WAN subnet. Each section rejects the physical WAN interface, WAN VLAN interface, PPPoE WAN client, and bridge member ports. When both access sections are enabled, they must also use different interfaces, profile names, server names, and pool names.
 
-The RADIUS entry uses `service=hotspot` when either Hotspot section is enabled without PPPoE, and `service=ppp,hotspot` when PPPoE and either Hotspot section are enabled. It retains `require-message-auth=no` and the selected PR3S public/private address mapping. For a private RADIUS path, enter the L2TP credentials for your deployment in the UI. No VPN username or password from an example configuration is embedded in the generator.
+The RADIUS entry uses `service=hotspot` when either Hotspot section is enabled without PPPoE, `service=ppp` for PPPoE-only output, and `service=ppp,hotspot` only when PPPoE and either Hotspot section are enabled. It retains `require-message-auth=no` and the selected PR3S public/private address mapping. For a private RADIUS path, enter the L2TP credentials for your deployment in the UI. No VPN username or password from an example configuration is embedded in the generator.
 
 Each enabled Hotspot section adds its own `srcnat` rule scoped to its subnet. PPPoE NAT rules stay scoped to the active PPPoE subnets, and the fixed expired pool is not NATed. The expired-user forward drop rule remains available.
 

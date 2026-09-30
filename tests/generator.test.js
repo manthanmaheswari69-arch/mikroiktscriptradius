@@ -8,13 +8,23 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 assert.match(html, /href="styles\.css"/);
 assert.match(html, /src="app\.js" defer/);
+assert.match(html, /id="clear"/);
+assert.doesNotMatch(html, /PR3S1\s*[·-]\s*143\.110\.244\.41/);
 
 function createGenerator() {
     const elements = new Map();
     for (const [, id] of html.matchAll(/\bid="([^"]+)"/g)) {
+        const classes = new Set();
         elements.set(id, {
             value: '', checked: false, textContent: '', disabled: false, readOnly: false, placeholder: '',
-            classList: { toggle() {} }, addEventListener() {}
+            classList: {
+                toggle(name, force) {
+                    const add = force === undefined ? !classes.has(name) : force;
+                    if (add) classes.add(name); else classes.delete(name);
+                },
+                contains(name) { return classes.has(name); }
+            },
+            addEventListener() {}
         });
     }
 
@@ -96,6 +106,7 @@ assert.match(ipBasedOnly, /add addresses-per-mac=unlimited name=ipbased_server i
 assert.match(ipBasedOnly, /add address=192\.168\.110\.0\/24 server=ipbased_server type=regular/);
 assert.match(ipBasedOnly, /set allow-remote-requests=yes servers=8\.8\.8\.8,8\.8\.4\.4/);
 assert.match(ipBasedOnly, /add service=hotspot address=192\.168\.113\.1 .*require-message-auth=no/);
+assert.doesNotMatch(ipBasedOnly, /add service=ppp/);
 assert.match(ipBasedOnly, /src-address=192\.168\.110\.0\/24 out-interface=ether1 action=masquerade/);
 assert.doesNotMatch(ipBasedOnly, /\/ip dhcp-server|192\.168\.100\.0\/24/);
 
@@ -126,4 +137,20 @@ assert.throws(() => generate({ enablePppoe: false, enableHotspot: false, enableI
 const hotspot30 = generate({ enableHotspot: true, hotspotSubnet: '192.168.101.0/30' });
 assert.match(hotspot30, /add name=hotspot_dhcp_pool ranges=192\.168\.101\.2-192\.168\.101\.2/);
 
-console.log('Passed: PPPoE-only, independent login Hotspot and IP-based MAC-RADIUS, all-services output, public/L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');
+const clearState = createGenerator();
+assert.equal(clearState.elements.get('radiusField').classList.contains('hidden'), true);
+assert.equal(clearState.elements.get('vpnEndpointField').classList.contains('hidden'), true);
+clearState.context.generate();
+assert.notEqual(clearState.elements.get('output').textContent, 'Your configuration will appear here.');
+clearState.elements.get('clear').onclick();
+assert.equal(clearState.elements.get('output').textContent, 'Your configuration will appear here.');
+assert.equal(clearState.elements.get('copy').disabled, true);
+assert.equal(clearState.elements.get('download').disabled, true);
+
+const customServerState = createGenerator();
+customServerState.elements.get('publicServer').value = 'custom';
+customServerState.context.toggle();
+assert.equal(customServerState.elements.get('radiusField').classList.contains('hidden'), false);
+assert.equal(customServerState.elements.get('vpnEndpointField').classList.contains('hidden'), false);
+
+console.log('Passed: PPPoE-only, independent login Hotspot and IP-based MAC-RADIUS, PPP service selection, clear-script control, hidden preset labels, public/L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');

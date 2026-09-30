@@ -16,6 +16,8 @@ function toggle() {
     $('staticFields').classList.toggle('hidden', value('wanMode') !== 'static');
     $('pppoeWanFields').classList.toggle('hidden', value('wanMode') !== 'pppoe');
     $('vpnFields').classList.toggle('hidden', !vpn);
+    $('radiusField').classList.toggle('hidden', selected !== 'custom');
+    $('vpnEndpointField').classList.toggle('hidden', selected !== 'custom');
     $('radiusIp').readOnly = !!server;
     $('vpnEndpoint').readOnly = !!server;
 
@@ -471,7 +473,7 @@ function generate() {
     $('output').textContent = generated;
     $('summary').textContent = summary.join('\n');
     $('error').textContent = '';
-    $('copy').disabled = $('download').disabled = false;
+    $('clear').disabled = $('copy').disabled = $('download').disabled = false;
 }
 
 $('generate').onclick = () => {
@@ -482,8 +484,18 @@ $('generate').onclick = () => {
         $('error').textContent = error.message;
         $('output').textContent = 'Fix the highlighted issue and generate again.';
         $('summary').textContent = '';
+        $('clear').disabled = false;
         $('copy').disabled = $('download').disabled = true;
     }
+};
+
+$('clear').onclick = () => {
+    generated = '';
+    $('error').textContent = '';
+    $('summary').textContent = '';
+    $('output').textContent = 'Your configuration will appear here.';
+    $('copy').textContent = 'Copy';
+    $('clear').disabled = $('copy').disabled = $('download').disabled = true;
 };
 
 $('copy').onclick = async () => {
