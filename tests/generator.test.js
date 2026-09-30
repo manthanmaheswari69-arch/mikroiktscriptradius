@@ -29,6 +29,7 @@ function createGenerator() {
         hotspotServerName: 'hotspot_server', hotspotPoolName: 'hotspot_dhcp_pool', hotspotDhcpName: 'hotspot_dhcp'
     };
     for (const [id, value] of Object.entries(defaults)) elements.get(id).value = value;
+    elements.get('enablePppoe').checked = true;
     elements.get('blockExpired').checked = true;
 
     const context = {
@@ -43,7 +44,7 @@ function createGenerator() {
 function generate(overrides = {}) {
     const app = createGenerator();
     for (const [id, value] of Object.entries(overrides)) {
-        if (id === 'enableHotspot' || id === 'blockExpired' || id === 'bindIp') app.elements.get(id).checked = value;
+        if (id === 'enablePppoe' || id === 'enableHotspot' || id === 'blockExpired' || id === 'bindIp') app.elements.get(id).checked = value;
         else app.elements.get(id).value = value;
     }
     app.context.toggle();
@@ -53,6 +54,8 @@ function generate(overrides = {}) {
 
 const pppoeOnly = generate();
 assert.match(pppoeOnly, /add service=ppp address=143\.110\.244\.41 .*require-message-auth=no/);
+assert.match(pppoeOnly, /# NAT only active customers/);
+assert.match(pppoeOnly, /# \/radius monitor \[find where service=ppp\]/);
 assert.match(pppoeOnly, /add chain=srcnat src-address=192\.168\.2\.0\/24 out-interface=ether1 action=masquerade/);
 assert.match(pppoeOnly, /comment="expired PPPoE users"/);
 assert.doesNotMatch(pppoeOnly, /\/ip hotspot|\/ip dhcp-server|service=ppp,hotspot/);
@@ -70,6 +73,12 @@ assert.match(publicHotspot, /add service=ppp,hotspot address=143\.110\.244\.41 .
 assert.match(publicHotspot, /chain=srcnat src-address=192\.168\.100\.0\/24 out-interface=ether1 action=masquerade comment="Hotspot clients"/);
 assert.doesNotMatch(publicHotspot, /chain=srcnat[^\n]*1\.1\.1\./);
 
+const hotspotOnly = generate({ enablePppoe: false, enableHotspot: true, lanInterface: '', lanAddress: '', service: '', extraProfiles: 'ignored-invalid-data' });
+assert.match(hotspotOnly, /add service=hotspot address=143\.110\.244\.41 .*require-message-auth=no/);
+assert.match(hotspotOnly, /add name=hotspot_server interface=ether3 profile=hotspot_profile disabled=no/);
+assert.doesNotMatch(hotspotOnly, /\/ppp aaa|\/ppp profile|\/interface pppoe-server|pppoe_pool|expired_pool|expired PPPoE users|service=ppp/);
+assert.equal((hotspotOnly.match(/add chain=srcnat/g) || []).length, 1);
+
 const l2tpHotspot = generate({ enableHotspot: true, wanReach: 'private', publicServer: 'pr3s2', vpnUser: 'test_vpn_user', vpnPass: 'test_vpn_password' });
 assert.match(l2tpHotspot, /add name=l2tp-radius connect-to=64\.227\.158\.172 user="test_vpn_user" password="test_vpn_password"/);
 assert.match(l2tpHotspot, /add dst-address=192\.168\.113\.1\/32 gateway=l2tp-radius/);
@@ -81,7 +90,8 @@ assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '1.1.1.0/24' 
 assert.throws(() => generate({ enableHotspot: true, wanMode: 'static', wanAddress: '192.168.100.2/24', wanGateway: '192.168.100.1' }), /Hotspot subnet overlaps the static WAN subnet/);
 assert.throws(() => generate({ enableHotspot: true, hotspotInterface: 'ether1' }), /Hotspot interface cannot be the WAN interface/);
 assert.throws(() => generate({ enableHotspot: true, lanMode: 'bridge', bridgeExtra: 'ether3', hotspotInterface: 'ether3' }), /Hotspot cannot run on a bridge member port/);
+assert.throws(() => generate({ enablePppoe: false, enableHotspot: false }), /Enable PPPoE, Hotspot, or both/);
 const hotspot30 = generate({ enableHotspot: true, hotspotSubnet: '192.168.101.0/30' });
 assert.match(hotspot30, /add name=hotspot_dhcp_pool ranges=192\.168\.101\.2-192\.168\.101\.2/);
 
-console.log('Passed: PPPoE-only, public RADIUS + Hotspot, L2TP RADIUS + Hotspot, pool boundaries, subnet overlaps, WAN-interface rejection, and bridge-member rejection.');
+console.log('Passed: PPPoE-only, Hotspot-only, combined public RADIUS, combined L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');

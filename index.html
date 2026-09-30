@@ -18,7 +18,7 @@
             </div>
             <div class="side-label">Configuration</div>
             <nav class="side-nav" aria-label="Sections"><a href="#wan"><span>01</span> WAN uplink</a><a
-                    href="#customers"><span>02</span> Customer side</a><a href="#hotspot"><span>03</span> Hotspot</a><a href="#advanced"><span>04</span> Scale
+                    href="#customers"><span>02</span> PPPoE</a><a href="#hotspot"><span>03</span> Hotspot</a><a href="#advanced"><span>04</span> Scale
                     up</a><a href="#radius"><span>05</span> RADIUS & VPN</a><a href="#result"><span>06</span> Script
                     output</a></nav>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser. Credentials
@@ -92,11 +92,15 @@
                 <div class="section-head">
                     <div class="num">02</div>
                     <div>
-                        <h2>Customer side</h2>
-                        <p>Set the first PPPoE server and its address pools.</p>
+                        <h2>Optional PPPoE</h2>
+                        <p>Enable PPPoE when this router will serve PPPoE subscribers.</p>
                     </div>
                 </div>
                 <div class="card">
+                    <div class="options" style="margin-top:0">
+                        <div style="border-top:0;padding-top:0"><label class="check"><input id="enablePppoe" type="checkbox" checked>Enable PPPoE</label></div>
+                    </div>
+                    <div id="pppoeFields" class="service-fields">
                     <div class="grid">
                         <div><label for="lanMode">Interface setup</label><select id="lanMode">
                                 <option value="physical">Physical interface</option>
@@ -136,6 +140,7 @@
                                 NAT.</small></div>
                     </div>
                     <div id="poolPreview" class="pool-preview" aria-live="polite"></div>
+                    </div>
                 </div>
             </section>
             <section id="hotspot">
