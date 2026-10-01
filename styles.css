@@ -148,7 +148,42 @@
             justify-content: space-between;
             gap: 20px;
             align-items: center;
+            flex-wrap: wrap;
             margin-bottom: 48px
+        }
+
+        .page-navbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px
+        }
+
+        .page-navbar a {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            border: 1px solid #30485b;
+            border-radius: 8px;
+            padding: 8px 10px;
+            color: #aac0ce;
+            background: #102033;
+            font: 700 11px ui-monospace, monospace;
+            text-decoration: none
+        }
+
+        .page-navbar a span {
+            color: #68dac7
+        }
+
+        .page-navbar a:hover,
+        .page-navbar a.is-active {
+            border-color: #49d6be;
+            color: #ecfffb;
+            background: #17403e
+        }
+
+        .page-navbar + .crumb {
+            display: none
         }
 
         .crumb {
@@ -677,6 +712,86 @@
 
         .side-label {
             margin: 34px 10px 10px
+        }
+
+        .tool-summary {
+            margin: 0 4px;
+            padding: 15px;
+            border: 1px solid #284653;
+            border-radius: 13px;
+            background: linear-gradient(145deg, #102936, #0d1d2b)
+        }
+
+        .tool-summary span {
+            display: block;
+            margin-bottom: 8px;
+            color: #61ddc6;
+            font: 800 10px ui-monospace, monospace;
+            letter-spacing: .12em
+        }
+
+        .tool-summary strong {
+            display: block;
+            color: #eefbff;
+            font-size: 14px
+        }
+
+        .tool-summary p {
+            margin: 7px 0 0;
+            color: #9ab0c2;
+            font-size: 12px;
+            line-height: 1.5
+        }
+
+        .tool-steps {
+            display: grid;
+            gap: 3px;
+            margin-top: 14px
+        }
+
+        .tool-steps div {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 10px;
+            color: #a9bdd1;
+            font-size: 12px
+        }
+
+        .tool-steps span {
+            color: #6990a0;
+            font: 700 10px ui-monospace, monospace
+        }
+
+        .routing-methods {
+            display: grid;
+            gap: 8px;
+            margin: 14px 4px 0
+        }
+
+        .routing-methods div {
+            padding: 12px;
+            border: 1px solid #213d4a;
+            border-radius: 10px;
+            background: #0d202d
+        }
+
+        .routing-methods strong {
+            color: #70ead6;
+            font-size: 12px
+        }
+
+        .routing-methods p,
+        .sidebar-tip {
+            margin: 5px 0 0;
+            color: #9ab0c2;
+            font-size: 11px;
+            line-height: 1.45
+        }
+
+        .sidebar-tip {
+            margin: 12px 5px 0;
+            color: #c0d0dc
         }
 
         .side-nav a {

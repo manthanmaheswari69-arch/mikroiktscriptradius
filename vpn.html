@@ -11,17 +11,20 @@
     <div class="layout">
         <aside class="sidebar">
             <div class="brand"><div class="brand-mark">R</div><div>Router<em>Forge</em></div></div>
-            <div class="side-label">Network tools</div>
-            <nav class="side-nav" aria-label="Network tools">
-                <a href="index.html"><span class="nav-step">01</span><span>Service configurator</span></a>
-                <a href="loadbalancing.html"><span class="nav-step">02</span><span>Load balancing</span></a>
-                <a class="is-active" href="vpn.html"><span class="nav-step">03</span><span>VPN</span></a>
-            </nav>
+            <div class="tool-sidebar">
+                <div class="side-label">VPN workspace</div>
+                <div class="tool-summary"><span>ROUTEROS 7</span><strong>WireGuard access</strong><p>Create a secure tunnel and add each remote peer.</p></div>
+                <div class="routing-methods" aria-label="WireGuard VPN guide">
+                    <div><strong>Tunnel and peers</strong><p>The tunnel address creates the VPN subnet. Give every peer a public key and unique allowed address.</p></div>
+                    <div><strong>Firewall and NAT</strong><p>The firewall permits WireGuard traffic. NAT lets VPN peers reach networks beyond this router.</p></div>
+                </div>
+                <p class="sidebar-tip">Keep peer allowed addresses inside the tunnel subnet and do not overlap them.</p>
+            </div>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser.</div>
         </aside>
         <main class="workspace">
             <div class="main-column">
-                <div class="topbar"><div class="crumb">NETWORK TOOLS <b>/</b> VPN</div><div class="badge">ROUTEROS 7</div></div>
+                <div class="topbar"><nav class="page-navbar" aria-label="Pages"><a href="index.html"><span>01</span>Service configurator</a><a href="loadbalancing.html"><span>02</span>Load balancing</a><a class="is-active" aria-current="page" href="vpn.html"><span>03</span>VPN</a></nav><div class="badge">ROUTEROS 7</div></div>
                 <header class="hero">
                     <div class="eyebrow">WIREGUARD VPN</div>
                     <h1>Secure remote access,<br><span>ready for your peers.</span></h1>

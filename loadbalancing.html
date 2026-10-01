@@ -11,17 +11,20 @@
     <div class="layout">
         <aside class="sidebar">
             <div class="brand"><div class="brand-mark">R</div><div>Router<em>Forge</em></div></div>
-            <div class="side-label">Network tools</div>
-            <nav class="side-nav" aria-label="Network tools">
-                <a href="index.html"><span class="nav-step">01</span><span>Service configurator</span></a>
-                <a class="is-active" href="loadbalancing.html"><span class="nav-step">02</span><span>Load balancing</span></a>
-                <a href="vpn.html"><span class="nav-step">03</span><span>VPN</span></a>
-            </nav>
+            <div class="tool-sidebar">
+                <div class="side-label">Routing workspace</div>
+                <div class="tool-summary"><span>ROUTEROS 7</span><strong>Load balancing</strong><p>Build predictable WAN routing for your customer traffic.</p></div>
+                <div class="routing-methods" aria-label="Routing method guide">
+                    <div><strong>PCC</strong><p>Shares new connections across WANs using their bandwidth values. Use it when all customers can use every WAN.</p></div>
+                    <div><strong>Source tagging</strong><p>Sends each source-address list through its assigned WAN. Use it to keep customer groups on fixed links.</p></div>
+                </div>
+                <p class="sidebar-tip">Choose one method. They create different routing rules.</p>
+            </div>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser.</div>
         </aside>
         <main class="workspace">
             <div class="main-column">
-                <div class="topbar"><div class="crumb">NETWORK TOOLS <b>/</b> LOAD BALANCING</div><div class="badge">ROUTEROS 7</div></div>
+                <div class="topbar"><nav class="page-navbar" aria-label="Pages"><a href="index.html"><span>01</span>Service configurator</a><a class="is-active" aria-current="page" href="loadbalancing.html"><span>02</span>Load balancing</a><a href="vpn.html"><span>03</span>VPN</a></nav><div class="badge">ROUTEROS 7</div></div>
                 <header class="hero">
                     <div class="eyebrow">LOAD BALANCING</div>
                     <h1>WAN routing,<br><span>PCC or source tagging.</span></h1>
