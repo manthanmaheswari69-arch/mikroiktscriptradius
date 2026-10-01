@@ -18,19 +18,20 @@
             </div>
             <div class="side-label">Configuration</div>
             <nav class="side-nav" aria-label="Configuration sections">
-                <a href="#wan" data-section="wan"><span class="nav-step">01</span><span>WAN uplink</span><span class="nav-check" aria-hidden="true">✓</span></a>
-                <a href="#customers" data-section="customers"><span class="nav-step">02</span><span>PPPoE</span><span class="nav-check" aria-hidden="true">✓</span></a>
-                <a href="#hotspot" data-section="hotspot"><span class="nav-step">03</span><span>Hotspot</span><span class="nav-check" aria-hidden="true">✓</span></a>
-                <a href="#ipbased" data-section="ipbased"><span class="nav-step">04</span><span>Static IP</span><span class="nav-check" aria-hidden="true">✓</span></a>
-                <a href="#advanced" data-section="advanced"><span class="nav-step">05</span><span>Scale up</span><span class="nav-check" aria-hidden="true">✓</span></a>
-                <a href="#radius" data-section="radius"><span class="nav-step">06</span><span>RADIUS & VPN</span><span class="nav-check" aria-hidden="true">✓</span></a>
-                <a href="#result" data-section="result"><span class="nav-step">07</span><span>Script output</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#routerUser" data-section="routerUser"><span class="nav-step">01</span><span>Access user</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#wan" data-section="wan"><span class="nav-step">02</span><span>WAN uplink</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#customers" data-section="customers"><span class="nav-step">03</span><span>PPPoE</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#hotspot" data-section="hotspot"><span class="nav-step">04</span><span>Hotspot</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#ipbased" data-section="ipbased"><span class="nav-step">05</span><span>Static IP</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#advanced" data-section="advanced"><span class="nav-step">06</span><span>Scale up</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#radius" data-section="radius"><span class="nav-step">07</span><span>RADIUS & VPN</span><span class="nav-check" aria-hidden="true">✓</span></a>
+                <a href="#result" data-section="result"><span class="nav-step">08</span><span>Script output</span><span class="nav-check" aria-hidden="true">✓</span></a>
             </nav>
             <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser. Credentials
                 stay in the page until you close it.</div>
         </aside>
         <nav class="mobile-progress" aria-label="Configuration progress">
-            <a href="#wan" data-section="wan">1</a><a href="#customers" data-section="customers">2</a><a href="#hotspot" data-section="hotspot">3</a><a href="#ipbased" data-section="ipbased">4</a><a href="#advanced" data-section="advanced">5</a><a href="#radius" data-section="radius">6</a><a href="#result" data-section="result">7</a>
+            <a href="#routerUser" data-section="routerUser">1</a><a href="#wan" data-section="wan">2</a><a href="#customers" data-section="customers">3</a><a href="#hotspot" data-section="hotspot">4</a><a href="#ipbased" data-section="ipbased">5</a><a href="#advanced" data-section="advanced">6</a><a href="#radius" data-section="radius">7</a><a href="#result" data-section="result">8</a>
         </nav>
         <main class="workspace">
             <div class="main-column">
@@ -46,9 +47,38 @@
                 <div class="feature-line"><span>◆ PR3S server mapping</span><span>◆ Multi VLAN & profile</span><span>◆
                         DHCP / Static / PPPoE WAN</span><span>◆ Optional Hotspot</span></div>
             </header>
-            <section id="wan">
+            <section id="routerUser">
                 <div class="section-head">
                     <div class="num">01</div>
+                    <div>
+                        <h2>RouterOS access user</h2>
+                        <p>Optionally create an administrator account in the generated script.</p>
+                    </div>
+                </div>
+                <div class="card router-user-card">
+                    <div class="service-control">
+                        <label class="service-toggle"><input id="enableRouterUser" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Add RouterOS access user</span></label>
+                        <span id="routerUserStatus" class="status-badge is-disabled" role="status">Disabled</span>
+                    </div>
+                    <div id="routerUserFields" class="subcard service-fields is-collapsed">
+                        <div class="subcard-title">RouterOS user access</div>
+                        <div class="grid">
+                            <div><label for="routerUserName">Username</label><input id="routerUserName" autocomplete="off" placeholder="e.g. admin"></div>
+                            <div><label for="routerUserPassword">Password</label><input id="routerUserPassword" type="password" autocomplete="off" placeholder="Enter a strong password"></div>
+                            <div><label for="routerUserGroup">User group</label><select id="routerUserGroup">
+                                    <option value="read">Read — monitoring access</option>
+                                    <option value="write">Write — configuration access</option>
+                                    <option value="full" selected>Full — unrestricted access</option>
+                                </select><small>Uses the built-in RouterOS groups: read, write, and full.</small></div>
+                            <div><label for="routerUserComment">Comment <span class="tag">OPTIONAL</span></label><input id="routerUserComment" value="user access" placeholder="e.g. user access"></div>
+                        </div>
+                        <small>This password is included in the exported RouterOS script. Store the script securely.</small>
+                    </div>
+                </div>
+            </section>
+            <section id="wan">
+                <div class="section-head">
+                    <div class="num">02</div>
                     <div>
                         <h2>WAN uplink</h2>
                         <p>Choose how the router connects to the internet.</p>
@@ -103,7 +133,7 @@
             </section>
             <section id="customers">
                 <div class="section-head">
-                    <div class="num">02</div>
+                    <div class="num">03</div>
                     <div>
                         <h2>PPPoE</h2>
                         <p>Enable PPPoE when this router will serve PPPoE subscribers.</p>
@@ -159,7 +189,7 @@
             </section>
             <section id="hotspot">
                 <div class="section-head">
-                    <div class="num">03</div>
+                    <div class="num">04</div>
                     <div>
                         <h2>Hotspot login</h2>
                         <p>Optional captive portal with DHCP and username/password login.</p>
@@ -189,7 +219,7 @@
             </section>
             <section id="ipbased">
                 <div class="section-head">
-                    <div class="num">04</div>
+                    <div class="num">05</div>
                     <div>
                         <h2>Static IP + MAC RADIUS</h2>
                         <p>Optional static-IP access with automatic MAC authentication.</p>
@@ -223,7 +253,7 @@
             </section>
             <section id="advanced" class="is-collapsed">
                 <div class="section-head">
-                    <div class="num">05</div>
+                    <div class="num">06</div>
                     <div>
                         <h2>Scale up</h2>
                         <p>Add more VLANs, subscriber profiles and PPPoE listeners.</p>
@@ -261,7 +291,7 @@
             </section>
             <section id="radius">
                 <div class="section-head">
-                    <div class="num">06</div>
+                    <div class="num">07</div>
                     <div>
                         <h2>RADIUS & VPN</h2>
                         <p>Select a PR3S server or provide your own endpoint.</p>

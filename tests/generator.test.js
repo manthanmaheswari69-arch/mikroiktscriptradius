@@ -13,6 +13,7 @@ assert.match(html, /id="liveSummary"/);
 assert.match(html, /id="extraVlansRows"/);
 assert.match(html, /data-server="pr3s3"/);
 assert.match(html, /id="scriptState"/);
+assert.match(html, /id="routerUserGroup"[\s\S]*value="read"[\s\S]*value="write"[\s\S]*value="full" selected/);
 assert.doesNotMatch(html, /id="enablePppoe" type="checkbox" checked/);
 assert.match(html, /<option value="" selected>Select WAN type<\/option>/);
 assert.match(html, /<option value="" selected>Select RADIUS path<\/option>/);
@@ -66,7 +67,7 @@ function createGenerator() {
 function generate(overrides = {}) {
     const app = createGenerator();
     for (const [id, value] of Object.entries(overrides)) {
-        if (['enablePppoe', 'enableHotspot', 'enableIpBased', 'blockExpired', 'bindIp', 'ipBasedBinding'].includes(id)) app.elements.get(id).checked = value;
+        if (['enablePppoe', 'enableHotspot', 'enableIpBased', 'enableRouterUser', 'blockExpired', 'bindIp', 'ipBasedBinding'].includes(id)) app.elements.get(id).checked = value;
         else app.elements.get(id).value = value;
     }
     app.context.toggle();
@@ -84,6 +85,10 @@ assert.equal((pppoeOnly.match(/add chain=srcnat/g) || []).length, 1);
 assert.match(pppoeOnly, /comment="expired PPPoE users"/);
 assert.doesNotMatch(pppoeOnly, /\/ip hotspot|\/ip dhcp-server|service=ppp,hotspot/);
 assert.doesNotMatch(pppoeOnly, /chain=srcnat[^\n]*1\.1\.1\./);
+assert.doesNotMatch(pppoeOnly, /\/user add/);
+
+const routerUser = generate({ enableRouterUser: true, routerUserName: 'admin', routerUserPassword: 'user123', routerUserGroup: 'full', routerUserComment: 'user access' });
+assert.match(routerUser, /\/user add name=admin password="user123" group=full comment="user access"/);
 
 const publicHotspot = generate({ enableHotspot: true });
 assert.match(publicHotspot, /add address=192\.168\.100\.1\/24 network=192\.168\.100\.0 interface=ether3/);

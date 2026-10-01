@@ -64,6 +64,12 @@ function toggleIpBased() {
     updateLiveSummary();
 }
 
+function toggleRouterUser() {
+    const enabled = $('enableRouterUser').checked;
+    $('routerUserFields').classList.toggle('is-collapsed', !enabled);
+    updateServiceStatus('routerUserStatus', enabled);
+}
+
 ['wanMode', 'wanReach', 'lanMode', 'vpnIpsec'].forEach(id => $(id).addEventListener('change', toggle));
 $('publicServer').addEventListener('change', () => {
     $('radiusIp').value = '';
@@ -73,6 +79,7 @@ $('publicServer').addEventListener('change', () => {
 $('enablePppoe').addEventListener('change', togglePppoe);
 $('enableHotspot').addEventListener('change', toggleHotspot);
 $('enableIpBased').addEventListener('change', toggleIpBased);
+$('enableRouterUser').addEventListener('change', toggleRouterUser);
 $('lanAddress').addEventListener('input', preview);
 $('hotspotSubnet').addEventListener('input', hotspotPreview);
 $('ipBasedSubnet').addEventListener('input', ipBasedPreview);
@@ -174,6 +181,7 @@ function errorField(message) {
     const mappings = [
         [/L2TP username/i, 'vpnUser'], [/L2TP password/i, 'vpnPass'], [/IPsec secret/i, 'ipsecSecret'],
         [/L2TP endpoint/i, 'vpnEndpoint'], [/RADIUS secret/i, 'radiusSecret'], [/RADIUS.*port/i, 'authPort'],
+        [/RouterOS user name/i, 'routerUserName'], [/RouterOS user password/i, 'routerUserPassword'], [/RouterOS user group/i, 'routerUserGroup'],
         [/WAN addressing/i, 'wanMode'], [/RADIUS path/i, 'wanReach'], [/WAN VLAN/i, 'wanVlanId'], [/VLAN ID/i, 'vlanId'], [/WAN address|WAN gateway/i, 'wanAddress'],
         [/Hotspot.*interface/i, 'hotspotInterface'], [/Hotspot.*subnet|Hotspot subnet/i, 'hotspotSubnet'],
         [/IP-based.*interface|different interfaces/i, 'ipBasedInterface'], [/IP-based.*subnet|IP-based subnet/i, 'ipBasedSubnet'],
@@ -679,6 +687,14 @@ function generate() {
     lines.push('/radius', 'add service=' + radiusServices + ' address=' + radius + ' secret=' + secret + ' require-message-auth=no authentication-port=' + authPort + ' accounting-port=' + acctPort + ' timeout=3s');
     if ($('coa').checked) lines.push('# Restrict UDP 1700 from the RADIUS source in input firewall before enabling', '/radius incoming', 'set accept=yes');
 
+    if ($('enableRouterUser').checked) {
+        const name = ident(value('routerUserName'), 'RouterOS user name');
+        const password = literal(value('routerUserPassword'), 'RouterOS user password');
+        const group = ident(value('routerUserGroup'), 'RouterOS user group');
+        const comment = value('routerUserComment') ? ' comment=' + literal(value('routerUserComment'), 'RouterOS user comment') : '';
+        lines.push('# RouterOS access user', '/user add name=' + name + ' password=' + password + ' group=' + group + comment);
+    }
+
     const masqueradeNetworks = [
         ...profiles.map(profile => ({ network: profile.pool.active, comment: 'active ' + profile.name })),
         ...(hotspot ? [{ network: hotspot.pool.active, comment: 'Hotspot clients' }] : []),
@@ -820,6 +836,7 @@ toggle();
 togglePppoe();
 toggleHotspot();
 toggleIpBased();
+toggleRouterUser();
 initChoiceCards();
 initEditors();
 initNavigation();
