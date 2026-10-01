@@ -933,10 +933,21 @@
             margin-bottom: 5px
         }
 
-        .repeatable-row input {
+        .repeatable-row input,
+        .repeatable-row select {
             min-height: 39px;
             padding: 8px 9px;
             font-size: 12px
+        }
+
+        .repeatable-row.is-pppoe [data-editor-index="5"] {
+            grid-column: span 3
+        }
+
+        .repeatable-row.is-pppoe button.remove-row {
+            grid-column: 4;
+            grid-row: 1 / span 3;
+            align-self: stretch
         }
 
         button.add-row,
@@ -1254,6 +1265,12 @@
             .repeatable-row {
                 grid-template-columns: 1fr;
                 gap: 7px
+            }
+
+            .repeatable-row.is-pppoe [data-editor-index="5"],
+            .repeatable-row.is-pppoe button.remove-row {
+                grid-column: auto;
+                grid-row: auto
             }
 
             button.remove-row {

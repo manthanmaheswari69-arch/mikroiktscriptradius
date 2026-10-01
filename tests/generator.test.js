@@ -11,10 +11,12 @@ assert.match(html, /src="app\.js" defer/);
 assert.match(html, /id="clear"/);
 assert.match(html, /id="liveSummary"/);
 assert.match(html, /id="extraVlansRows"/);
+assert.match(html, /id="extraWansRows"/);
 assert.match(html, /data-server="pr3s3"/);
 assert.match(html, /id="scriptState"/);
 assert.match(html, /id="routerUserGroup"[\s\S]*value="read"[\s\S]*value="write"[\s\S]*value="full" selected/);
 assert.doesNotMatch(html, /id="enablePppoe" type="checkbox" checked/);
+assert.doesNotMatch(html, /id="enableRadius" type="checkbox" checked/);
 assert.match(html, /<option value="" selected>Select WAN type<\/option>/);
 assert.match(html, /<option value="" selected>Select RADIUS path<\/option>/);
 assert.doesNotMatch(html, /PR3S1\s*[·-]\s*143\.110\.244\.41/);
@@ -38,7 +40,7 @@ function createGenerator() {
     }
 
     const defaults = {
-        wanInterface: 'ether1', wanMode: 'dhcp', wanReach: 'public', wanVlanName: 'vlan-wan',
+        wanInterface: 'ether1', wanMode: 'dhcp', wanReach: 'public', wanVlanName: 'vlan-wan', wanDistance: '1', extraWans: '',
         wanPppoeName: 'pppoe-wan', lanMode: 'physical', lanInterface: 'ether2', lanAddress: '192.168.2.0/24',
         service: 'service1', bridgeName: 'bridge-pppoe', vlanName: 'vlan-pppoe', vpnIpsec: 'no',
         publicServer: 'pr3s1', radiusIp: '', radiusSecret: 'phpmkradius', authPort: '1812', acctPort: '1813',
@@ -52,6 +54,7 @@ function createGenerator() {
     };
     for (const [id, value] of Object.entries(defaults)) elements.get(id).value = value;
     elements.get('enablePppoe').checked = true;
+    elements.get('enableRadius').checked = true;
     elements.get('blockExpired').checked = true;
     elements.get('ipBasedBinding').checked = true;
 
@@ -67,7 +70,7 @@ function createGenerator() {
 function generate(overrides = {}) {
     const app = createGenerator();
     for (const [id, value] of Object.entries(overrides)) {
-        if (['enablePppoe', 'enableHotspot', 'enableIpBased', 'enableRouterUser', 'blockExpired', 'bindIp', 'ipBasedBinding'].includes(id)) app.elements.get(id).checked = value;
+        if (['enablePppoe', 'enableHotspot', 'enableIpBased', 'enableRouterUser', 'enableRadius', 'blockExpired', 'bindIp', 'ipBasedBinding'].includes(id)) app.elements.get(id).checked = value;
         else app.elements.get(id).value = value;
     }
     app.context.toggle();
@@ -87,6 +90,25 @@ assert.doesNotMatch(pppoeOnly, /\/ip hotspot|\/ip dhcp-server|service=ppp,hotspo
 assert.doesNotMatch(pppoeOnly, /chain=srcnat[^\n]*1\.1\.1\./);
 assert.doesNotMatch(pppoeOnly, /\/user add/);
 
+const multiWan = generate({ extraWans: 'ether5,dhcp,2\nether6,static,3,203.0.113.2/30,203.0.113.1\nether7,pppoe,4,pppoe-backup,backup-user,backup-pass' });
+assert.match(multiWan, /add interface=ether1 disabled=no use-peer-dns=no add-default-route=yes default-route-distance=1/);
+assert.match(multiWan, /add interface=ether5 disabled=no use-peer-dns=no add-default-route=yes default-route-distance=2/);
+assert.match(multiWan, /add address=203\.0\.113\.2\/30 interface=ether6/);
+assert.match(multiWan, /add dst-address=0\.0\.0\.0\/0 gateway=203\.0\.113\.1 distance=3/);
+assert.match(multiWan, /add name=pppoe-backup interface=ether7 user="backup-user" password="backup-pass" add-default-route=yes default-route-distance=4/);
+assert.match(multiWan, /add name=wan-uplinks comment="Generated WAN uplinks"/);
+assert.match(multiWan, /add list=wan-uplinks interface=ether1/);
+assert.match(multiWan, /add list=wan-uplinks interface=ether5/);
+assert.match(multiWan, /add list=wan-uplinks interface=pppoe-backup/);
+assert.match(multiWan, /add chain=srcnat src-address-list=masquerade_pool out-interface-list=wan-uplinks action=masquerade/);
+assert.equal((multiWan.match(/add chain=srcnat/g) || []).length, 1);
+
+const rowPppoeWan = generate({ extraWans: 'ether8,pppoe,5,,,pppoe-ui,ui-user,ui-pass,' });
+assert.match(rowPppoeWan, /add name=pppoe-ui interface=ether8 user="ui-user" password="ui-pass" add-default-route=yes default-route-distance=5/);
+
+const pppoeWan = generate({ wanMode: 'pppoe', wanPppoeName: 'pppoe-isp', wanPppoeUser: 'isp-user', wanPppoePass: 'isp-pass', wanDistance: '4' });
+assert.match(pppoeWan, /add name=pppoe-isp interface=ether1 user="isp-user" password="isp-pass" add-default-route=yes default-route-distance=4/);
+
 const routerUser = generate({ enableRouterUser: true, routerUserName: 'admin', routerUserPassword: 'user123', routerUserGroup: 'full', routerUserComment: 'user access' });
 assert.match(routerUser, /\/user add name=admin password="user123" group=full comment="user access"/);
 
@@ -104,6 +126,11 @@ assert.match(publicHotspot, /add list=masquerade_pool address=192\.168\.100\.0\/
 assert.match(publicHotspot, /chain=srcnat src-address-list=masquerade_pool out-interface=ether1 action=masquerade/);
 assert.doesNotMatch(publicHotspot, /chain=srcnat[^\n]*1\.1\.1\./);
 
+const localHotspot = generate({ enableHotspot: true, enableRadius: false });
+assert.match(localHotspot, /login-by=cookie,http-chap,http-pap use-radius=no/);
+assert.doesNotMatch(localHotspot, /\/radius/);
+assert.doesNotMatch(localHotspot, /RADIUS path:/);
+
 const hotspotOnly = generate({ enablePppoe: false, enableHotspot: true, lanInterface: '', lanAddress: '', service: '', extraProfiles: 'ignored-invalid-data' });
 assert.match(hotspotOnly, /add service=hotspot address=143\.110\.244\.41 .*require-message-auth=no/);
 assert.match(hotspotOnly, /add name=hotspot_server interface=ether3 profile=hotspot_profile disabled=no/);
@@ -112,9 +139,10 @@ assert.equal((hotspotOnly.match(/add chain=srcnat/g) || []).length, 1);
 
 const ipBasedOnly = generate({
     enablePppoe: false, enableIpBased: true,
-    wanMode: 'static', wanAddress: '10.10.20.46/24', wanGateway: '10.10.20.1',
+    wanMode: 'static', wanAddress: '10.10.20.46/24', wanGateway: '10.10.20.1', wanDistance: '5',
     wanReach: 'private', publicServer: 'pr3s2', vpnUser: 'entered_vpn_user', vpnPass: 'entered_vpn_password'
 });
+assert.match(ipBasedOnly, /add dst-address=0\.0\.0\.0\/0 gateway=10\.10\.20\.1 distance=5/);
 assert.match(ipBasedOnly, /add name=l2tp-radius connect-to=64\.227\.158\.172 user="entered_vpn_user" password="entered_vpn_password"/);
 assert.match(ipBasedOnly, /add address=192\.168\.110\.1\/24 network=192\.168\.110\.0 interface=ether4/);
 assert.match(ipBasedOnly, /add name=static ranges=192\.168\.110\.2-192\.168\.110\.254/);
@@ -156,6 +184,8 @@ assert.throws(() => generate({ lanInterface: '' }), /Customer interface is requi
 assert.throws(() => generate({ wanMode: 'static', wanAddress: 'not-an-address', wanGateway: '203.0.113.1' }), /Enter the WAN address in IP\/CIDR format/);
 assert.throws(() => generate({ lanMode: 'vlan', vlanId: '0' }), /VLAN ID from 1 to 4094\. VLAN IDs 0 and 4095 are reserved/);
 assert.throws(() => generate({ wanVlanId: '4095' }), /WAN VLAN ID from 1 to 4094\. VLAN IDs 0 and 4095 are reserved/);
+assert.throws(() => generate({ extraWans: 'ether5,dhcp,0' }), /Additional WAN distance must be a whole number from 1 to 255/);
+assert.throws(() => generate({ extraWans: 'ether1,dhcp,2' }), /Each WAN interface must be unique/);
 
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '192.168.2.0/24' }), /Hotspot subnet overlaps PPPoE profile subnet/);
 assert.throws(() => generate({ enableHotspot: true, hotspotSubnet: '1.1.1.0/24' }), /Hotspot subnet overlaps the reserved expired-user subnet/);
@@ -211,5 +241,11 @@ dashboardState.elements.get('enableIpBased').checked = true;
 dashboardState.context.toggleIpBased();
 assert.equal(dashboardState.elements.get('ipBasedFields').classList.contains('is-collapsed'), false);
 assert.equal(dashboardState.elements.get('ipBasedStatus').textContent, 'Enabled');
+dashboardState.elements.get('enableRadius').checked = false;
+dashboardState.context.toggleRadius();
+assert.equal(dashboardState.elements.get('radiusConfig').classList.contains('is-collapsed'), true);
+assert.equal(dashboardState.elements.get('wanReachField').classList.contains('hidden'), true);
+assert.equal(dashboardState.elements.get('radiusStatus').textContent, 'Disabled');
+assert.equal(dashboardState.elements.get('summaryRadius').textContent, 'Disabled');
 
 console.log('Passed: PPPoE-only, independent login Hotspot and IP-based MAC-RADIUS, PPP service selection, clear-script control, hidden preset labels, public/L2TP RADIUS, pool boundaries, subnet overlaps, interface checks, and empty-service rejection.');

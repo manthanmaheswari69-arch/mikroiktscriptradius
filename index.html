@@ -52,7 +52,7 @@
                     <div class="num">01</div>
                     <div>
                         <h2>RouterOS access user</h2>
-                        <p>Optionally create an administrator account in the generated script.</p>
+                        <p>Create an administrator account in the generated script when needed.</p>
                     </div>
                 </div>
                 <div class="card router-user-card">
@@ -94,7 +94,7 @@
                                 <option value="static">Static IP</option>
                                 <option value="pppoe">PPPoE client</option>
                             </select></div>
-                        <div class="radius-path-field"><label for="wanReach">RADIUS reachability</label><select id="wanReach" class="visually-hidden">
+                        <div id="wanReachField" class="radius-path-field hidden"><label for="wanReach">RADIUS reachability</label><select id="wanReach" class="visually-hidden">
                                 <option value="" selected>Select RADIUS path</option>
                                 <option value="private">Private IP · L2TP tunnel</option>
                                 <option value="public">Public IP · direct RADIUS</option>
@@ -105,6 +105,7 @@
                                 id="wanVlanId" type="number" min="1" max="4094" placeholder="Blank = untagged" aria-describedby="wanVlanIdError"><small id="wanVlanIdError" class="field-error" aria-live="polite"></small></div>
                         <div><label for="wanVlanName">WAN VLAN interface name</label><input id="wanVlanName"
                                 placeholder="e.g. vlan-wan"></div>
+                        <div><label for="wanDistance">Route distance</label><input id="wanDistance" type="number" min="1" max="255" value="1"><small>Lower distance is preferred.</small></div>
                     </div>
                     <div id="staticFields" class="subcard hidden">
                         <div class="subcard-title">Static address</div>
@@ -128,6 +129,15 @@
                                         class="tag">OPTIONAL</span></label><input id="wanPppoeService"
                                     placeholder="Any service"></div>
                         </div>
+                    </div>
+                    <div class="multi" data-editor="extraWans" style="margin-top:16px">
+                        <div class="tag">FAILOVER</div>
+                        <h3>Additional WAN uplinks</h3>
+                        <p class="helper">Each backup WAN supports DHCP, Static IP, or PPPoE and has its own route distance.</p>
+                        <div id="extraWansRows" class="repeatable-rows" aria-label="Additional WAN uplinks"></div>
+                        <button type="button" class="add-row" data-add-row="extraWans">+ Add WAN</button>
+                        <details class="paste-lines"><summary>Paste multiple lines</summary><label for="extraWans">DHCP: interface,dhcp,distance · Static: interface,static,distance,address/CIDR,gateway · PPPoE: interface,pppoe,distance,client-name,username,password,service</label><textarea id="extraWans" rows="3" placeholder="ether5,dhcp,2&#10;ether6,static,3,203.0.113.2/30,203.0.113.1&#10;ether7,pppoe,4,pppoe-backup,user,password"></textarea></details>
+                        <small>The lowest route distance is the primary path.</small>
                     </div>
                 </div>
             </section>
@@ -297,6 +307,13 @@
                         <p>Select a PR3S server or provide your own endpoint.</p>
                     </div>
                 </div>
+                <div class="card radius-toggle-card">
+                    <div class="service-control">
+                        <label class="service-toggle"><input id="enableRadius" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable RADIUS authentication</span></label>
+                        <span id="radiusStatus" class="status-badge is-disabled" role="status">Disabled</span>
+                    </div>
+                </div>
+                <div id="radiusConfig" class="service-fields is-collapsed">
                 <div class="card">
                     <div class="grid">
                         <div class="radius-server-field"><label for="publicServer">RADIUS server</label><select id="publicServer" class="visually-hidden">
@@ -344,6 +361,7 @@
                                 id="ipsecSecret" type="password" autocomplete="off"></div>
                     </div><small>L2TP alone does not encrypt traffic. The server must route RADIUS through the
                         tunnel.</small>
+                </div>
                 </div>
             </section>
             <section id="result" class="output-card">

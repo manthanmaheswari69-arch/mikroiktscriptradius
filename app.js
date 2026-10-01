@@ -70,6 +70,14 @@ function toggleRouterUser() {
     updateServiceStatus('routerUserStatus', enabled);
 }
 
+function toggleRadius() {
+    const enabled = $('enableRadius').checked;
+    $('radiusConfig').classList.toggle('is-collapsed', !enabled);
+    $('wanReachField').classList.toggle('hidden', !enabled);
+    updateServiceStatus('radiusStatus', enabled);
+    updateLiveSummary();
+}
+
 ['wanMode', 'wanReach', 'lanMode', 'vpnIpsec'].forEach(id => $(id).addEventListener('change', toggle));
 $('publicServer').addEventListener('change', () => {
     $('radiusIp').value = '';
@@ -80,6 +88,7 @@ $('enablePppoe').addEventListener('change', togglePppoe);
 $('enableHotspot').addEventListener('change', toggleHotspot);
 $('enableIpBased').addEventListener('change', toggleIpBased);
 $('enableRouterUser').addEventListener('change', toggleRouterUser);
+$('enableRadius').addEventListener('change', toggleRadius);
 $('lanAddress').addEventListener('input', preview);
 $('hotspotSubnet').addEventListener('input', hotspotPreview);
 $('ipBasedSubnet').addEventListener('input', ipBasedPreview);
@@ -132,12 +141,15 @@ function updateLiveSummary() {
     const reach = value('wanReach') === 'private' ? 'VPN / L2TP' : 'Public IP';
     const radius = value('radiusIp') || 'Select a server';
 
-    $('summaryWan').textContent = (wanModes[value('wanMode')] || 'WAN') + ' on ' + value('wanInterface') + wanVlan;
+    const extraWanCount = value('extraWans').split(/\r?\n/).filter(Boolean).length;
+    $('summaryWan').textContent = (wanModes[value('wanMode')] || 'WAN') + ' on ' + value('wanInterface') + wanVlan + (extraWanCount ? ' + ' + extraWanCount + ' failover WAN' + (extraWanCount > 1 ? 's' : '') : '');
     $('summaryServices').textContent = enabledServices;
     $('summaryPppoe').textContent = pppoe;
     $('summaryHotspot').textContent = hotspot;
     $('summaryIpBased').textContent = ipBased;
-    $('summaryRadius').textContent = (server ? selected.toUpperCase() : selected === 'custom' ? 'Custom' : 'No server') + ' | ' + reach + ' | ' + radius;
+    $('summaryRadius').textContent = $('enableRadius').checked
+        ? (server ? selected.toUpperCase() : selected === 'custom' ? 'Custom' : 'No server') + ' | ' + reach + ' | ' + radius
+        : 'Disabled';
     $('ipQuickGateway').textContent = safeRange(value('ipBasedSubnet'), 'hotspot').split(' | ')[0];
     $('ipQuickRange').textContent = safeRange(value('ipBasedSubnet'), 'hotspot').split(' | ')[1] || 'Check subnet';
     $('ipQuickInterface').textContent = value('ipBasedInterface') || 'Not configured';
@@ -160,7 +172,7 @@ function updateChoiceControls() {
 
 const liveSummaryInputs = [
     'wanInterface', 'wanMode', 'wanVlanId', 'wanVlanName', 'lanAddress', 'hotspotSubnet', 'ipBasedSubnet',
-    'ipBasedInterface', 'ipBasedPoolName', 'publicServer', 'radiusIp', 'wanReach'
+    'ipBasedInterface', 'ipBasedPoolName', 'publicServer', 'radiusIp', 'wanReach', 'extraWans'
 ];
 liveSummaryInputs.forEach(id => $(id).addEventListener('input', updateLiveSummary));
 
@@ -182,7 +194,7 @@ function errorField(message) {
         [/L2TP username/i, 'vpnUser'], [/L2TP password/i, 'vpnPass'], [/IPsec secret/i, 'ipsecSecret'],
         [/L2TP endpoint/i, 'vpnEndpoint'], [/RADIUS secret/i, 'radiusSecret'], [/RADIUS.*port/i, 'authPort'],
         [/RouterOS user name/i, 'routerUserName'], [/RouterOS user password/i, 'routerUserPassword'], [/RouterOS user group/i, 'routerUserGroup'],
-        [/WAN addressing/i, 'wanMode'], [/RADIUS path/i, 'wanReach'], [/WAN VLAN/i, 'wanVlanId'], [/VLAN ID/i, 'vlanId'], [/WAN address|WAN gateway/i, 'wanAddress'],
+        [/WAN addressing/i, 'wanMode'], [/Additional WAN/i, 'extraWans'], [/WAN distance/i, 'wanDistance'], [/RADIUS path/i, 'wanReach'], [/WAN VLAN/i, 'wanVlanId'], [/VLAN ID/i, 'vlanId'], [/WAN address|WAN gateway/i, 'wanAddress'],
         [/Hotspot.*interface/i, 'hotspotInterface'], [/Hotspot.*subnet|Hotspot subnet/i, 'hotspotSubnet'],
         [/IP-based.*interface|different interfaces/i, 'ipBasedInterface'], [/IP-based.*subnet|IP-based subnet/i, 'ipBasedSubnet'],
         [/Customer interface/i, 'lanInterface'], [/PPPoE.*subnet|Active subnet|expired-user/i, 'lanAddress'],
@@ -288,6 +300,19 @@ function rows(id, min, max) {
 }
 
 const editorConfigs = {
+    extraWans: {
+        fields: [
+            { label: 'Interface', placeholder: 'ether5' },
+            { label: 'Method', options: ['dhcp', 'static', 'pppoe'] },
+            { label: 'Route distance', placeholder: '2' },
+            { label: 'Static IP / CIDR', placeholder: '203.0.113.2/30', showFor: 'static' },
+            { label: 'Static gateway', placeholder: '203.0.113.1', showFor: 'static' },
+            { label: 'PPPoE client name', placeholder: 'pppoe-backup', showFor: 'pppoe' },
+            { label: 'PPPoE username', placeholder: 'ISP username', showFor: 'pppoe' },
+            { label: 'PPPoE password', type: 'password', placeholder: 'ISP password', showFor: 'pppoe' },
+            { label: 'PPPoE service', placeholder: 'Any service', showFor: 'pppoe' }
+        ]
+    },
     extraVlans: {
         labels: ['VLAN name', 'VLAN ID', 'Parent interface'],
         placeholders: ['vlan-pppoe-200', '200', 'ether2']
@@ -303,31 +328,68 @@ const editorConfigs = {
 };
 
 function editorRows(id) {
-    return value(id).split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => line.split(',').map(part => part.trim()));
+    return value(id).split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+        const parts = line.split(',').map(part => part.trim());
+        return id === 'extraWans' && parts[1]?.toLowerCase() === 'pppoe' && parts.length <= 7
+            ? [...parts.slice(0, 3), '', '', ...parts.slice(3)]
+            : parts;
+    });
 }
 
 function syncEditor(id) {
     const container = $(id + 'Rows');
     const values = [...container.querySelectorAll('.repeatable-row')]
-        .map(row => [...row.querySelectorAll('input')].map(input => input.value.trim()))
+        .map(row => [...row.querySelectorAll('[data-editor-field]')].map(input => input.value.trim()))
         .filter(parts => parts.some(Boolean));
     $(id).value = values.map(parts => parts.join(',')).join('\n');
+}
+
+function updateEditorRow(id, row) {
+    if (id !== 'extraWans') return;
+    const fields = [...row.querySelectorAll('[data-editor-field]')];
+    const mode = fields[1].value;
+    row.classList.toggle('is-pppoe', mode === 'pppoe');
+    const visible = [...row.querySelectorAll('[data-show-for]')].filter(field => {
+        const show = field.dataset.showFor === mode;
+        field.classList.toggle('hidden', !show);
+        return show;
+    }).length + 3;
+    row.style.setProperty('--fields', mode === 'pppoe' ? 3 : visible);
 }
 
 function addEditorRow(id, values = []) {
     const config = editorConfigs[id];
     const container = $(id + 'Rows');
     const row = document.createElement('div');
+    const fields = config.fields || config.labels.map((label, index) => ({ label, placeholder: config.placeholders[index] }));
     row.className = 'repeatable-row';
-    row.style.setProperty('--fields', config.labels.length);
-    config.labels.forEach((label, index) => {
+    row.style.setProperty('--fields', fields.length);
+    fields.forEach((definition, index) => {
         const field = document.createElement('div');
         const fieldLabel = document.createElement('label');
-        const input = document.createElement('input');
-        fieldLabel.textContent = label;
-        input.placeholder = config.placeholders[index];
-        input.value = values[index] || '';
-        input.addEventListener('input', () => syncEditor(id));
+        const input = document.createElement(definition.options ? 'select' : 'input');
+        fieldLabel.textContent = definition.label;
+        if (definition.options) definition.options.forEach(optionValue => {
+            const option = document.createElement('option');
+            option.value = option.textContent = optionValue;
+            input.append(option);
+        });
+        else {
+            input.type = definition.type || 'text';
+            input.placeholder = definition.placeholder;
+        }
+        input.value = values[index] || (definition.options ? definition.options[0] : '');
+        input.dataset.editorField = String(index);
+        field.dataset.editorIndex = String(index);
+        if (definition.showFor) field.dataset.showFor = definition.showFor;
+        input.addEventListener('input', () => {
+            updateEditorRow(id, row);
+            syncEditor(id);
+        });
+        input.addEventListener('change', () => {
+            updateEditorRow(id, row);
+            syncEditor(id);
+        });
         field.append(fieldLabel, input);
         row.append(field);
     });
@@ -343,6 +405,7 @@ function addEditorRow(id, values = []) {
     });
     row.append(remove);
     container.append(row);
+    updateEditorRow(id, row);
 }
 
 function renderEditor(id) {
@@ -367,6 +430,54 @@ function ident(input, name) {
     if (!input) fail(name + ' is required. Enter a name and try again.');
     if (!/^[A-Za-z0-9_.-]{1,48}$/.test(input)) fail(name + ' can use only letters, numbers, periods, hyphens, and underscores.');
     return input;
+}
+
+function routeDistance(input, name) {
+    if (!/^\d+$/.test(input) || +input < 1 || +input > 255) fail(name + ' must be a whole number from 1 to 255.');
+    return +input;
+}
+
+function staticWan(addressInput, gatewayInput, label) {
+    const match = addressInput.match(/^([^/]+)\/(\d{1,2})$/);
+    if (!match || +match[2] > 32) fail('Enter the ' + label + ' address in IP/CIDR format, such as 203.0.113.2/30.');
+    const addressNumber = ip(match[1]);
+    const bits = +match[2];
+    const size = 2 ** (32 - bits);
+    return {
+        address: fmt(addressNumber),
+        bits,
+        gateway: fmt(ip(gatewayInput)),
+        network: { net: Math.floor(addressNumber / size) * size, size }
+    };
+}
+
+function additionalWans() {
+    return value('extraWans').split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line, index) => {
+        const parts = line.split(',').map(part => part.trim());
+        if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) fail('Additional WAN line ' + (index + 1) + ' needs an interface, method, and route distance.');
+        const iface = ident(parts[0], 'Additional WAN interface');
+        const mode = parts[1].toLowerCase();
+        const distance = routeDistance(parts[2], 'Additional WAN distance');
+        if (mode === 'dhcp') return { iface, mode, distance, out: iface };
+        if (mode === 'static') {
+            if (!parts[3] || !parts[4]) fail('Additional WAN static IP and gateway are required.');
+            return { iface, mode, distance, out: iface, static: staticWan(parts[3], parts[4], 'Additional WAN') };
+        }
+        if (mode === 'pppoe') {
+            const packed = parts.length <= 7;
+            const [name, user, password, service] = packed ? parts.slice(3, 7) : parts.slice(5, 9);
+            return {
+                iface,
+                mode,
+                distance,
+                out: ident(name || 'pppoe-' + iface, 'Additional WAN PPPoE client name'),
+                user: literal(user, 'Additional WAN PPPoE username'),
+                password: literal(password, 'Additional WAN PPPoE password'),
+                service: service ? literal(service, 'Additional WAN PPPoE service') : ''
+            };
+        }
+        fail('Additional WAN method must be DHCP, Static, or PPPoE.');
+    });
 }
 
 function literal(input, name) {
@@ -436,9 +547,11 @@ function generate() {
     const pppoeEnabled = $('enablePppoe').checked;
     const hotspotEnabled = $('enableHotspot').checked;
     const ipBasedEnabled = $('enableIpBased').checked;
+    const radiusEnabled = $('enableRadius').checked;
+    const radiusSetting = radiusEnabled ? 'yes' : 'no';
     if (!pppoeEnabled && !hotspotEnabled && !ipBasedEnabled) fail('Enable PPPoE, Hotspot, IP-based access, or a combination.');
     if (!['dhcp', 'static', 'pppoe'].includes(value('wanMode'))) fail('Select a WAN addressing method before generating the script.');
-    if (!['public', 'private'].includes(value('wanReach'))) fail('Select the Public IP or VPN / L2TP RADIUS path before generating the script.');
+    if (radiusEnabled && !['public', 'private'].includes(value('wanReach'))) fail('Select the Public IP or VPN / L2TP RADIUS path before generating the script.');
 
     const lines = [
         '# RouterOS 7 - review names, addressing, RADIUS route and firewall ordering before import',
@@ -447,12 +560,19 @@ function generate() {
     let wanInterface = ident(value('wanInterface'), 'WAN interface');
     const physicalWan = wanInterface;
     let wanOut = wanInterface;
+    const wanDistance = routeDistance(value('wanDistance'), 'Primary WAN distance');
+    const extraWans = additionalWans();
+    const physicalWans = [physicalWan, ...extraWans.map(wan => wan.iface)];
+    if (new Set(physicalWans).size !== physicalWans.length) fail('Each WAN interface must be unique.');
     const wanClientName = value('wanMode') === 'pppoe' ? ident(value('wanPppoeName'), 'PPPoE WAN name') : '';
     const wanVlan = value('wanVlanId') ? ident(value('wanVlanName'), 'WAN VLAN name') : '';
+    const wanNames = [...physicalWans, wanClientName, wanVlan, ...extraWans.filter(wan => wan.mode === 'pppoe').map(wan => wan.out)].filter(Boolean);
+    if (new Set(wanNames).size !== wanNames.length) fail('WAN interface and PPPoE client names must be unique.');
+    const staticWanNetworks = extraWans.filter(wan => wan.mode === 'static').map(wan => wan.static.network);
     const selected = value('publicServer');
-    if (!selected) fail('Select PR3S1, PR3S2, PR3S3, or Custom');
-    const radius = fmt(ip(value('radiusIp')));
-    const secret = literal(value('radiusSecret'), 'RADIUS secret');
+    if (radiusEnabled && !selected) fail('Select PR3S1, PR3S2, PR3S3, or Custom');
+    const radius = radiusEnabled ? fmt(ip(value('radiusIp'))) : '';
+    const secret = radiusEnabled ? literal(value('radiusSecret'), 'RADIUS secret') : '';
 
     let customer = '';
     let lanInterface = '';
@@ -463,21 +583,18 @@ function generate() {
 
     if (pppoeEnabled) {
         lanInterface = ident(value('lanInterface'), 'Customer interface');
-        if (physicalWan === lanInterface) fail('WAN and customer interfaces must differ');
+        if (wanNames.includes(lanInterface)) fail('WAN and customer interfaces must differ');
         mode = value('lanMode');
         customer = lanInterface;
         basePool = calcPools(value('lanAddress'));
-
-        if (wanClientName && [physicalWan, lanInterface, wanVlan].includes(wanClientName)) fail('PPPoE WAN name conflicts with another interface');
-        if (wanVlan && [physicalWan, lanInterface].includes(wanVlan)) fail('WAN VLAN name conflicts with another interface');
 
         if (mode === 'bridge') {
             customer = ident(value('bridgeName'), 'Bridge name');
             const extra = value('bridgeExtra') ? value('bridgeExtra').split(',').map(port => ident(port.trim(), 'Bridge port')) : [];
             const ports = [lanInterface, ...extra];
             if (new Set(ports).size !== ports.length) fail('Bridge ports must be unique');
-            if (ports.includes(physicalWan) || ports.includes(wanVlan) || ports.includes(wanClientName)) fail('WAN interface cannot be a customer bridge port');
-            if ([physicalWan, wanClientName, wanVlan].includes(customer) || ports.includes(customer)) fail('Bridge name conflicts with another interface');
+            if (ports.some(port => wanNames.includes(port))) fail('WAN interface cannot be a customer bridge port');
+            if (wanNames.includes(customer) || ports.includes(customer)) fail('Bridge name conflicts with another interface');
             lines.push('/interface bridge', 'add name=' + customer, '/interface bridge port', ...ports.map(port => 'add bridge=' + customer + ' interface=' + port));
         }
 
@@ -485,18 +602,18 @@ function generate() {
             customer = ident(value('vlanName'), 'VLAN name');
             const vlanId = +value('vlanId');
             if (!Number.isInteger(vlanId) || vlanId < 1 || vlanId > 4094) fail('Use a VLAN ID from 1 to 4094. VLAN IDs 0 and 4095 are reserved.');
-            if ([lanInterface, physicalWan, wanClientName, wanVlan].includes(customer)) fail('VLAN name conflicts with another interface');
+            if ([lanInterface, ...wanNames].includes(customer)) fail('VLAN name conflicts with another interface');
             lines.push('/interface vlan', 'add name=' + customer + ' interface=' + lanInterface + ' vlan-id=' + vlanId);
         }
 
         if (customer === wanClientName) fail('PPPoE WAN name must differ from customer interface');
         const extraVlans = rows('extraVlans', 3, 3).map(([name, id, parent]) => ({ name: ident(name, 'VLAN name'), id: Number(id), parent: ident(parent, 'VLAN parent') }));
-        const createdNames = [customer, physicalWan, lanInterface, wanVlan, wanClientName].filter(Boolean);
+        const createdNames = [customer, ...wanNames, lanInterface].filter(Boolean);
         if (mode === 'bridge' && value('bridgeExtra')) createdNames.push(...value('bridgeExtra').split(',').map(port => port.trim()));
         for (const vlan of extraVlans) {
             if (!Number.isInteger(vlan.id) || vlan.id < 1 || vlan.id > 4094) fail('Use a VLAN ID from 1 to 4094. VLAN IDs 0 and 4095 are reserved.');
             if (createdNames.includes(vlan.name)) fail('Duplicate interface name: ' + vlan.name);
-            if ([physicalWan, wanVlan, wanClientName].includes(vlan.parent) || vlan.name === vlan.parent) fail('Customer VLAN cannot use WAN as parent');
+            if (wanNames.includes(vlan.parent) || vlan.name === vlan.parent) fail('Customer VLAN cannot use WAN as parent');
             if (mode === 'bridge' && (vlan.parent === lanInterface || value('bridgeExtra').split(',').map(port => port.trim()).includes(vlan.parent))) fail('Use the new bridge name as VLAN parent, since customer ports become bridge members');
             if (mode === 'vlan' && vlan.parent === lanInterface && vlan.id === Number(value('vlanId'))) fail('Duplicate VLAN ID on the same parent');
             if (extraVlans.some(other => other !== vlan && other.name === vlan.parent)) fail('Additional VLAN parent must be an existing interface');
@@ -521,14 +638,11 @@ function generate() {
             iface = ident(iface, 'PPPoE server interface');
             profile = ident(profile, 'PPPoE profile');
             if (!profiles.some(item => item.name === profile)) fail('Unknown profile: ' + profile);
-            if ([physicalWan, wanVlan, wanClientName].includes(iface)) fail('PPPoE server cannot use WAN interface');
+            if (wanNames.includes(iface)) fail('PPPoE server cannot use WAN interface');
             if (mode === 'bridge' && iface === lanInterface) fail('Use bridge name for the customer port in bridge mode');
             if (serversList.some(server => server.interface === iface && server.service === serviceName)) fail('Duplicate PPPoE server interface and service');
             serversList.push({ interface: iface, profile, service: literal(serviceName, 'PPPoE service') });
         }
-    } else {
-        if (wanClientName && (wanClientName === physicalWan || wanClientName === wanVlan)) fail('PPPoE WAN name conflicts with another interface');
-        if (wanVlan && wanVlan === physicalWan) fail('WAN VLAN name conflicts with another interface');
     }
 
     if (wanVlan) {
@@ -540,23 +654,34 @@ function generate() {
 
     lines.push('# WAN');
     if (value('wanMode') === 'dhcp') {
-        lines.push('/ip dhcp-client', 'add interface=' + wanInterface + ' disabled=no use-peer-dns=no');
+        lines.push('/ip dhcp-client', 'add interface=' + wanInterface + ' disabled=no use-peer-dns=no add-default-route=yes default-route-distance=' + wanDistance);
     } else if (value('wanMode') === 'pppoe') {
         wanOut = wanClientName;
         const user = literal(value('wanPppoeUser'), 'PPPoE WAN username');
         const password = literal(value('wanPppoePass'), 'PPPoE WAN password');
-        let command = 'add name=' + wanOut + ' interface=' + wanInterface + ' user=' + user + ' password=' + password + ' add-default-route=yes use-peer-dns=no disabled=no';
+        let command = 'add name=' + wanOut + ' interface=' + wanInterface + ' user=' + user + ' password=' + password + ' add-default-route=yes default-route-distance=' + wanDistance + ' use-peer-dns=no disabled=no';
         if (value('wanPppoeService')) command += ' service-name=' + literal(value('wanPppoeService'), 'PPPoE WAN service');
         lines.push('/interface pppoe-client', command);
     } else {
-        const match = value('wanAddress').match(/^([^/]+)\/(\d{1,2})$/);
-        if (!match || +match[2] > 32) fail('Enter the WAN address in IP/CIDR format, such as 203.0.113.2/30.');
-        const address = fmt(ip(match[1]));
-        const gateway = fmt(ip(value('wanGateway')));
-        lines.push('/ip address', 'add address=' + address + '/' + match[2] + ' interface=' + wanInterface, '/ip route', 'add dst-address=0.0.0.0/0 gateway=' + gateway);
+        const configuredWan = staticWan(value('wanAddress'), value('wanGateway'), 'WAN');
+        staticWanNetworks.push(configuredWan.network);
+        lines.push('/ip address', 'add address=' + configuredWan.address + '/' + configuredWan.bits + ' interface=' + wanInterface, '/ip route', 'add dst-address=0.0.0.0/0 gateway=' + configuredWan.gateway + ' distance=' + wanDistance);
     }
 
-    if (value('wanReach') === 'private') {
+    if (extraWans.length) {
+        lines.push('# Additional WAN failover');
+        for (const wan of extraWans) {
+            if (wan.mode === 'dhcp') lines.push('/ip dhcp-client', 'add interface=' + wan.iface + ' disabled=no use-peer-dns=no add-default-route=yes default-route-distance=' + wan.distance);
+            if (wan.mode === 'static') lines.push('/ip address', 'add address=' + wan.static.address + '/' + wan.static.bits + ' interface=' + wan.iface, '/ip route', 'add dst-address=0.0.0.0/0 gateway=' + wan.static.gateway + ' distance=' + wan.distance);
+            if (wan.mode === 'pppoe') {
+                let command = 'add name=' + wan.out + ' interface=' + wan.iface + ' user=' + wan.user + ' password=' + wan.password + ' add-default-route=yes default-route-distance=' + wan.distance + ' use-peer-dns=no disabled=no';
+                if (wan.service) command += ' service-name=' + wan.service;
+                lines.push('/interface pppoe-client', command);
+            }
+        }
+    }
+
+    if (radiusEnabled && value('wanReach') === 'private') {
         const endpoint = host(value('vpnEndpoint'), 'L2TP endpoint');
         const user = l2tpCredential(value('vpnUser'), 'L2TP username');
         const password = l2tpCredential(value('vpnPass'), 'L2TP password');
@@ -566,22 +691,14 @@ function generate() {
     }
 
     function validateAccessNetwork(label, iface, pool) {
-        if ([physicalWan, wanVlan, wanClientName, wanInterface].filter(Boolean).includes(iface)) fail(label + ' interface cannot be the WAN interface');
+        if (wanNames.includes(iface) || wanInterface === iface) fail(label + ' interface cannot be the WAN interface');
         if (pppoeEnabled && mode === 'bridge') {
             const bridgePorts = [lanInterface, ...(value('bridgeExtra') ? value('bridgeExtra').split(',').map(port => port.trim()) : [])];
             if (bridgePorts.includes(iface)) fail(label + ' cannot run on a bridge member port; select the bridge interface instead');
         }
         for (const profile of profiles) if (overlap(pool.active, profile.pool.active)) fail(label + ' subnet overlaps PPPoE profile subnet: ' + profile.name);
         if (basePool && overlap(pool.active, basePool.expired)) fail(label + ' subnet overlaps the reserved expired-user subnet');
-        if (value('wanMode') === 'static') {
-            const match = value('wanAddress').match(/^([^/]+)\/(\d{1,2})$/);
-            if (match && +match[2] <= 32) {
-                const bits = +match[2];
-                const size = 2 ** (32 - bits);
-                const address = ip(match[1]);
-                if (overlap(pool.active, { net: Math.floor(address / size) * size, size })) fail(label + ' subnet overlaps the static WAN subnet');
-            }
-        }
+        for (const network of staticWanNetworks) if (overlap(pool.active, network)) fail(label + ' subnet overlaps the static WAN subnet');
     }
 
     let hotspot = null;
@@ -650,7 +767,7 @@ function generate() {
             '/ip dhcp-server network',
             'add address=' + network + ' gateway=' + gateway + ' dns-server=' + gateway,
             '/ip hotspot profile',
-            'add name=' + hotspot.profile + ' hotspot-address=' + gateway + ' dns-name=' + hotspot.dnsName + ' html-directory=' + hotspot.htmlDirectory + ' login-by=cookie,http-chap,http-pap use-radius=yes',
+            'add name=' + hotspot.profile + ' hotspot-address=' + gateway + ' dns-name=' + hotspot.dnsName + ' html-directory=' + hotspot.htmlDirectory + ' login-by=cookie,http-chap,http-pap use-radius=' + radiusSetting,
             '/ip hotspot',
             'add name=' + hotspot.server + ' interface=' + hotspot.iface + ' profile=' + hotspot.profile + ' disabled=no'
         );
@@ -666,7 +783,7 @@ function generate() {
             '/ip pool',
             'add name=' + ipBased.poolName + ' ranges=' + fmt(ipBased.pool.start) + '-' + fmt(ipBased.pool.end),
             '/ip hotspot profile',
-            'add name=' + ipBased.profile + ' login-by=mac mac-auth-mode=mac-as-username-and-password use-radius=yes',
+            'add name=' + ipBased.profile + ' login-by=mac mac-auth-mode=mac-as-username-and-password use-radius=' + radiusSetting,
             '/ip hotspot',
             'add addresses-per-mac=unlimited name=' + ipBased.server + ' interface=' + ipBased.iface + ' profile=' + ipBased.profile + ' disabled=no'
         );
@@ -678,14 +795,17 @@ function generate() {
         lines.push('# Restrict router DNS access to trusted LANs in the input firewall', '/ip dns', 'set allow-remote-requests=yes servers=' + dnsServers);
     }
 
-    const authPort = +value('authPort');
-    const acctPort = +value('acctPort');
-    if (!Number.isInteger(authPort) || authPort < 1 || authPort > 65535 || !Number.isInteger(acctPort) || acctPort < 1 || acctPort > 65535) fail('RADIUS ports must be 1–65535');
-    const radiusServices = [pppoeEnabled ? 'ppp' : '', (hotspotEnabled || ipBasedEnabled) ? 'hotspot' : ''].filter(Boolean).join(',');
-    lines.push('# RADIUS');
-    if (pppoeEnabled) lines.push('/ppp aaa', 'set use-radius=yes accounting=yes');
-    lines.push('/radius', 'add service=' + radiusServices + ' address=' + radius + ' secret=' + secret + ' require-message-auth=no authentication-port=' + authPort + ' accounting-port=' + acctPort + ' timeout=3s');
-    if ($('coa').checked) lines.push('# Restrict UDP 1700 from the RADIUS source in input firewall before enabling', '/radius incoming', 'set accept=yes');
+    let radiusServices = '';
+    if (radiusEnabled) {
+        const authPort = +value('authPort');
+        const acctPort = +value('acctPort');
+        if (!Number.isInteger(authPort) || authPort < 1 || authPort > 65535 || !Number.isInteger(acctPort) || acctPort < 1 || acctPort > 65535) fail('RADIUS ports must be 1–65535');
+        radiusServices = [pppoeEnabled ? 'ppp' : '', (hotspotEnabled || ipBasedEnabled) ? 'hotspot' : ''].filter(Boolean).join(',');
+        lines.push('# RADIUS');
+        if (pppoeEnabled) lines.push('/ppp aaa', 'set use-radius=yes accounting=yes');
+        lines.push('/radius', 'add service=' + radiusServices + ' address=' + radius + ' secret=' + secret + ' require-message-auth=no authentication-port=' + authPort + ' accounting-port=' + acctPort + ' timeout=3s');
+        if ($('coa').checked) lines.push('# Restrict UDP 1700 from the RADIUS source in input firewall before enabling', '/radius incoming', 'set accept=yes');
+    }
 
     if ($('enableRouterUser').checked) {
         const name = ident(value('routerUserName'), 'RouterOS user name');
@@ -702,7 +822,8 @@ function generate() {
     ];
     lines.push((hotspotEnabled || ipBasedEnabled) ? '# NAT only enabled customer services' : '# NAT only active customers', '/ip firewall address-list');
     for (const entry of masqueradeNetworks) lines.push('add list=masquerade_pool address=' + fmt(entry.network.net) + '/' + entry.network.bits + ' comment="' + entry.comment + '"');
-    lines.push('/ip firewall nat', 'add chain=srcnat src-address-list=masquerade_pool out-interface=' + wanOut + ' action=masquerade comment="customer masquerade"');
+    if (extraWans.length) lines.push('/interface list', 'add name=wan-uplinks comment="Generated WAN uplinks"', '/interface list member', ...[wanOut, ...extraWans.map(wan => wan.out)].map(iface => 'add list=wan-uplinks interface=' + iface));
+    lines.push('/ip firewall nat', 'add chain=srcnat src-address-list=masquerade_pool ' + (extraWans.length ? 'out-interface-list=wan-uplinks' : 'out-interface=' + wanOut) + ' action=masquerade comment="customer masquerade"');
     if (pppoeEnabled && $('blockExpired').checked) lines.push('# Place this ahead of any broad forward accept rules', '/ip firewall filter', 'add chain=forward src-address=' + fmt(basePool.expired.net) + '/' + basePool.expired.bits + ' action=drop comment="expired PPPoE users"');
 
     lines.push('# Verification (run separately after import)');
@@ -711,9 +832,12 @@ function generate() {
         lines.push('# /ip hotspot print detail', '# /ip dhcp-server lease print');
     }
     if (ipBasedEnabled) lines.push('# /ip hotspot active print detail', '# /ip hotspot ip-binding print detail');
-    if (pppoeEnabled && !hotspotEnabled && !ipBasedEnabled) lines.push('# /radius monitor [find where service=ppp]');
-    else lines.push('# /radius print detail (verify service=' + radiusServices + ')');
-    lines.push('# /ip route print detail where dst-address=' + radius + '/32', '# /ip pool used print');
+    if (radiusEnabled) {
+        if (pppoeEnabled && !hotspotEnabled && !ipBasedEnabled) lines.push('# /radius monitor [find where service=ppp]');
+        else lines.push('# /radius print detail (verify service=' + radiusServices + ')');
+        lines.push('# /ip route print detail where dst-address=' + radius + '/32');
+    }
+    lines.push('# /ip pool used print');
 
     const summary = [];
     if (pppoeEnabled) {
@@ -723,7 +847,7 @@ function generate() {
     }
     if (hotspot) summary.push('Login Hotspot: ' + fmt(hotspot.pool.active.addr) + '/' + hotspot.pool.active.bits + ' on ' + hotspot.iface + '; DHCP range ' + fmt(hotspot.pool.start) + '–' + fmt(hotspot.pool.end));
     if (ipBased) summary.push('IP-based access: ' + fmt(ipBased.pool.active.addr) + '/' + ipBased.pool.active.bits + ' on ' + ipBased.iface + '; static range ' + fmt(ipBased.pool.start) + '–' + fmt(ipBased.pool.end));
-    summary.push('RADIUS path: ' + (value('wanReach') === 'private' ? 'L2TP' : 'direct'));
+    summary.push(radiusEnabled ? 'RADIUS path: ' + (value('wanReach') === 'private' ? 'L2TP' : 'direct') : 'RADIUS: disabled');
 
     generated = lines.join('\n') + '\n';
     renderScript(generated);
@@ -837,6 +961,7 @@ togglePppoe();
 toggleHotspot();
 toggleIpBased();
 toggleRouterUser();
+toggleRadius();
 initChoiceCards();
 initEditors();
 initNavigation();
