@@ -4,6 +4,8 @@ Open `index.html` in a browser. The generator runs locally and exports a RouterO
 
 Open `loadbalancing.html` for the separate multi-WAN tool. PCC and source-address tagging each have their own toggle and WAN configuration card. Enable one method at a time: PCC uses `masquerade_pool` to create mangle rules in the matching bandwidth ratio, while tagging marks each WAN address list directly. Both produce routing tables, policy routes, and main routes for every WAN.
 
+Open `vpn.html` for the separate RouterOS 7 WireGuard remote-access generator. It creates the WireGuard interface, tunnel address, peers, optional input firewall rules, and a separate WireGuard NAT rule. RouterOS generates the WireGuard interface key automatically; provide each remote peer's public key and one or more unique comma-separated allowed addresses.
+
 The output toolbar includes **Clear script**, which removes the generated output without changing the form. Preconfigured PR3S addresses are kept out of the visible server selector and address fields; address entry is shown only when **Custom server IP** is selected. The required address is still included in the generated RouterOS script.
 
 PPPoE, login Hotspot, and IP-based/MAC access are independent sections. Enable any one of them or combine them. At least one customer service must be enabled. RADIUS authentication is off by default; enable it to reveal the RADIUS server and L2TP settings.
@@ -74,6 +76,7 @@ Run the browser-side generation checks with Node.js:
 ```sh
 node tests/generator.test.js
 node tests/loadbalancing.test.js
+node tests/vpn.test.js
 ```
 
 The tests cover single and multi-WAN output with route distances, exactly one NAT rule, PPPoE-only, independently enabled login Hotspot and IP-based MAC-RADIUS access, RADIUS on/off behavior, public RADIUS, PR3S RADIUS over L2TP, DHCP/static pool boundaries, cross-service/PPPoE/expired/WAN overlap rejection, WAN and bridge-member rejection, and rejection when every customer service is disabled.

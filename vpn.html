@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>RouterForge · VPN</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand"><div class="brand-mark">R</div><div>Router<em>Forge</em></div></div>
+            <div class="side-label">Network tools</div>
+            <nav class="side-nav" aria-label="Network tools">
+                <a href="index.html"><span class="nav-step">01</span><span>Service configurator</span></a>
+                <a href="loadbalancing.html"><span class="nav-step">02</span><span>Load balancing</span></a>
+                <a class="is-active" href="vpn.html"><span class="nav-step">03</span><span>VPN</span></a>
+            </nav>
+            <div class="side-bottom"><strong>● OFFLINE WORKSPACE</strong>Everything runs in this browser.</div>
+        </aside>
+        <main class="workspace">
+            <div class="main-column">
+                <div class="topbar"><div class="crumb">NETWORK TOOLS <b>/</b> VPN</div><div class="badge">ROUTEROS 7</div></div>
+                <header class="hero">
+                    <div class="eyebrow">WIREGUARD VPN</div>
+                    <h1>Secure remote access,<br><span>ready for your peers.</span></h1>
+                    <p>Create a RouterOS 7 WireGuard remote-access interface, tunnel subnet, peers, and input firewall rules.</p>
+                </header>
+                <section class="card">
+                    <div class="service-control"><label class="service-toggle"><input id="enableWireGuard" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable WireGuard VPN</span></label><span id="wireGuardStatus" class="status-badge is-disabled" role="status">Disabled</span></div>
+                    <div id="wireGuardFields" class="service-fields is-collapsed">
+                        <div class="section-head"><div class="num">01</div><div><h2>WireGuard interface</h2><p>RouterOS generates the interface private and public key automatically.</p></div></div>
+                        <div class="grid">
+                            <div><label for="wireGuardName">Interface name</label><input id="wireGuardName" value="wireguard1" autocomplete="off"></div>
+                            <div><label for="wireGuardPort">Listen port</label><input id="wireGuardPort" value="13231" type="number" min="1" max="65535"></div>
+                            <div><label for="wireGuardAddress">Tunnel address</label><input id="wireGuardAddress" value="192.168.100.1/24" autocomplete="off"><small>The router address and WireGuard peer subnet.</small></div>
+                            <div><label for="wireGuardMtu">MTU</label><input id="wireGuardMtu" value="1420" type="number" min="0" max="65536"></div>
+                        </div>
+                        <div class="options"><div><label class="check"><input id="wireGuardFirewall" type="checkbox" checked>Add input firewall rules</label><small>Allows WireGuard UDP handshakes and the WireGuard subnet to reach router services.</small></div><div><label class="check"><input id="wireGuardNat" type="checkbox" checked>Add separate WireGuard NAT</label><small>Masquerades traffic from the WireGuard peer subnet.</small></div></div>
+                        <div class="subcard"><div class="subcard-title">Remote peers</div><p class="helper">Add each client public key and one or more comma-separated tunnel addresses.</p><div id="wireGuardPeerRows" class="repeatable-rows" aria-label="WireGuard peers"></div><button id="addWireGuardPeer" type="button" class="add-row">+ Add peer</button><small>Allowed addresses cannot overlap and must be inside the tunnel subnet.</small></div>
+                    </div>
+                </section>
+                <section id="wireGuardOutput" class="output-card hidden">
+                    <div class="output-top"><div><div class="eyebrow">ROUTEROS 7 .RSC</div><h2>WireGuard script</h2><p>Generate, review, then copy or download the configuration.</p></div><div class="actions"><button id="generate">Generate script</button><button id="clear" class="secondary" disabled>Clear script</button><button id="copy" class="secondary" disabled>Copy</button><button id="download" class="secondary" disabled>Download .rsc</button></div></div>
+                    <div id="error" role="alert"></div>
+                    <pre id="output" class="is-empty" aria-label="RouterOS WireGuard script">Your WireGuard configuration will appear here.</pre>
+                </section>
+            </div>
+        </main>
+    </div>
+    <script src="vpn.js" defer></script>
+</body>
+</html>
