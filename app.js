@@ -185,7 +185,13 @@ function errorField(message) {
     return match && match[1];
 }
 
-function showInputError(id, message) {
+function errorFields(message) {
+    if (/cannot both use interface/i.test(message)) return ['hotspotInterface', 'ipBasedInterface'];
+    const field = errorField(message);
+    return field ? [field] : [];
+}
+
+function showInputError(id, message, focus = true) {
     const input = $(id);
     if (!input || !input.parentElement || !document.createElement) return;
     clearInputError(input);
@@ -195,8 +201,8 @@ function showInputError(id, message) {
     detail.className = 'input-validation-error';
     detail.textContent = message;
     input.parentElement.append(detail);
-    if (typeof input.scrollIntoView === 'function') input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (typeof input.focus === 'function') input.focus({ preventScroll: true });
+    if (focus && typeof input.scrollIntoView === 'function') input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (focus && typeof input.focus === 'function') input.focus({ preventScroll: true });
 }
 
 function clearEditedInputError(event) {
@@ -320,8 +326,9 @@ function addEditorRow(id, values = []) {
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-row';
-    remove.textContent = 'Remove';
+    remove.textContent = '×';
     remove.setAttribute('aria-label', 'Remove row');
+    remove.title = 'Remove row';
     remove.addEventListener('click', () => {
         row.remove();
         syncEditor(id);
@@ -602,7 +609,7 @@ function generate() {
     }
 
     if (hotspot && ipBased) {
-        if (hotspot.iface === ipBased.iface) fail('Login Hotspot and IP-based access must use different interfaces');
+        if (hotspot.iface === ipBased.iface) fail('Hotspot and IP-based access cannot both use interface ' + hotspot.iface + '. Use a VLAN interface for either Hotspot or IP-based access, or select separate physical interfaces.');
         if (overlap(hotspot.pool.active, ipBased.pool.active)) fail('Login Hotspot and IP-based subnets overlap');
         if (hotspot.profile === ipBased.profile) fail('Login Hotspot and IP-based profile names must differ');
         if (hotspot.server === ipBased.server) fail('Login Hotspot and IP-based server names must differ');
@@ -775,8 +782,7 @@ $('generate').onclick = () => {
     } catch (error) {
         generated = '';
         $('error').textContent = error.message;
-        const invalidField = errorField(error.message);
-        if (invalidField) showInputError(invalidField, error.message);
+        errorFields(error.message).forEach((field, index) => showInputError(field, error.message, index === 0));
         renderScript('');
         $('summary').textContent = '';
         $('clear').disabled = false;
