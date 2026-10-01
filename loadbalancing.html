@@ -22,17 +22,33 @@
             <div class="main-column">
                 <div class="topbar"><div class="crumb">NETWORK TOOLS <b>/</b> LOAD BALANCING</div><div class="badge">ROUTEROS 7</div></div>
                 <header class="hero">
-                    <div class="eyebrow">LOAD BALANCING STUDIO</div>
-                    <h1>Load balancing,<br><span>ready for your configuration.</span></h1>
-                    <p>Provide your required RouterOS load-balancing configuration, and it will be added here.</p>
+                    <div class="eyebrow">SOURCE ADDRESS ROUTING</div>
+                    <h1>WAN routing,<br><span>from your address lists.</span></h1>
+                    <p>Mark WAN1 and WAN2 client address lists, then create the matching policy and main-table routes.</p>
                 </header>
                 <section class="card">
-                    <div class="section-head"><div class="num">01</div><div><h2>Configuration comming soon
-                    
-                    </h2><p>This page has no generated rules or settings yet.</p></div></div>
+                    <div class="service-control">
+                        <label class="service-toggle"><input id="enableLoadBalancing" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable Load Balancing</span></label>
+                        <span id="loadBalancingStatus" class="status-badge is-disabled" role="status">Disabled</span>
+                    </div>
+                    <div id="loadBalancingFields" class="service-fields is-collapsed">
+                        <div class="section-head"><div class="num">01</div><div><h2>WAN source routing</h2><p>Add two or more WANs with their own routing tables, address lists, gateways, and distances.</p></div></div>
+                        <div id="wanRows" class="repeatable-rows" aria-label="WAN source routing"></div>
+                        <button id="addWan" type="button" class="add-row">+ Add WAN</button>
+                        <small>Create and fill the firewall address list named for each WAN separately. This page adds routing tables, mangle marks, and routes only.</small>
+                    </div>
+                </section>
+                <section id="loadBalancingOutput" class="output-card hidden">
+                    <div class="output-top">
+                        <div><div class="eyebrow">ROUTEROS 7 .RSC</div><h2>Routing script</h2><p>Review the gateways and distances, then copy the script.</p></div>
+                        <div class="actions"><button id="generate">Generate script</button><button id="clear" class="secondary" disabled>Clear script</button><button id="copy" class="secondary" disabled>Copy</button><button id="download" class="secondary" disabled>Download .rsc</button></div>
+                    </div>
+                    <div id="error" role="alert"></div>
+                    <pre id="output" class="is-empty" aria-label="RouterOS routing script">Your routing configuration will appear here.</pre>
                 </section>
             </div>
         </main>
     </div>
+    <script src="loadbalancing.js" defer></script>
 </body>
 </html>
