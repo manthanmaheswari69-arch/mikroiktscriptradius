@@ -174,7 +174,7 @@ function errorField(message) {
     const mappings = [
         [/L2TP username/i, 'vpnUser'], [/L2TP password/i, 'vpnPass'], [/IPsec secret/i, 'ipsecSecret'],
         [/L2TP endpoint/i, 'vpnEndpoint'], [/RADIUS secret/i, 'radiusSecret'], [/RADIUS.*port/i, 'authPort'],
-        [/WAN VLAN/i, 'wanVlanId'], [/VLAN ID/i, 'vlanId'], [/WAN address|WAN gateway/i, 'wanAddress'],
+        [/WAN addressing/i, 'wanMode'], [/RADIUS path/i, 'wanReach'], [/WAN VLAN/i, 'wanVlanId'], [/VLAN ID/i, 'vlanId'], [/WAN address|WAN gateway/i, 'wanAddress'],
         [/Hotspot.*interface/i, 'hotspotInterface'], [/Hotspot.*subnet|Hotspot subnet/i, 'hotspotSubnet'],
         [/IP-based.*interface|different interfaces/i, 'ipBasedInterface'], [/IP-based.*subnet|IP-based subnet/i, 'ipBasedSubnet'],
         [/Customer interface/i, 'lanInterface'], [/PPPoE.*subnet|Active subnet|expired-user/i, 'lanAddress'],
@@ -429,6 +429,8 @@ function generate() {
     const hotspotEnabled = $('enableHotspot').checked;
     const ipBasedEnabled = $('enableIpBased').checked;
     if (!pppoeEnabled && !hotspotEnabled && !ipBasedEnabled) fail('Enable PPPoE, Hotspot, IP-based access, or a combination.');
+    if (!['dhcp', 'static', 'pppoe'].includes(value('wanMode'))) fail('Select a WAN addressing method before generating the script.');
+    if (!['public', 'private'].includes(value('wanReach'))) fail('Select the Public IP or VPN / L2TP RADIUS path before generating the script.');
 
     const lines = [
         '# RouterOS 7 - review names, addressing, RADIUS route and firewall ordering before import',

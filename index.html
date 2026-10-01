@@ -57,13 +57,15 @@
                 <div class="card">
                     <div class="grid">
                         <div><label for="wanInterface">Physical interface</label><input id="wanInterface"
-                                value="ether1"></div>
+                                placeholder="e.g. ether1"></div>
                         <div><label for="wanMode">Addressing method</label><select id="wanMode">
+                                <option value="" selected>Select WAN type</option>
                                 <option value="dhcp">DHCP client</option>
                                 <option value="static">Static IP</option>
                                 <option value="pppoe">PPPoE client</option>
                             </select></div>
                         <div class="radius-path-field"><label for="wanReach">RADIUS reachability</label><select id="wanReach" class="visually-hidden">
+                                <option value="" selected>Select RADIUS path</option>
                                 <option value="private">Private IP · L2TP tunnel</option>
                                 <option value="public">Public IP · direct RADIUS</option>
                             </select><div class="segmented-control" role="group" aria-label="RADIUS reachability">
@@ -72,7 +74,7 @@
                         <div><label for="wanVlanId">WAN VLAN ID <span class="tag">OPTIONAL</span></label><input
                                 id="wanVlanId" type="number" min="1" max="4094" placeholder="Blank = untagged" aria-describedby="wanVlanIdError"><small id="wanVlanIdError" class="field-error" aria-live="polite"></small></div>
                         <div><label for="wanVlanName">WAN VLAN interface name</label><input id="wanVlanName"
-                                value="vlan-wan"></div>
+                                placeholder="e.g. vlan-wan"></div>
                     </div>
                     <div id="staticFields" class="subcard hidden">
                         <div class="subcard-title">Static address</div>
@@ -87,7 +89,7 @@
                         <div class="subcard-title">ISP PPPoE credentials</div>
                         <div class="grid">
                             <div><label for="wanPppoeName">Client interface name</label><input id="wanPppoeName"
-                                    value="pppoe-wan"></div>
+                                    placeholder="e.g. pppoe-wan"></div>
                             <div><label for="wanPppoeUser">Username</label><input id="wanPppoeUser" autocomplete="off">
                             </div>
                             <div><label for="wanPppoePass">Password</label><input id="wanPppoePass" type="password"
@@ -109,10 +111,10 @@
                 </div>
                 <div class="card">
                     <div class="service-control">
-                        <label class="service-toggle"><input id="enablePppoe" type="checkbox" checked><span class="toggle-track" aria-hidden="true"></span><span>Enable PPPoE service</span></label>
-                        <span id="pppoeStatus" class="status-badge" role="status">Enabled</span>
+                        <label class="service-toggle"><input id="enablePppoe" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable PPPoE service</span></label>
+                        <span id="pppoeStatus" class="status-badge is-disabled" role="status">Disabled</span>
                     </div>
-                    <div id="pppoeFields" class="service-fields">
+                    <div id="pppoeFields" class="service-fields is-collapsed">
                     <div class="grid">
                         <div><label for="lanMode">Interface setup</label><select id="lanMode">
                                 <option value="physical">Physical interface</option>
@@ -219,7 +221,7 @@
                     </div>
                 </div>
             </section>
-            <section id="advanced">
+            <section id="advanced" class="is-collapsed">
                 <div class="section-head">
                     <div class="num">05</div>
                     <div>

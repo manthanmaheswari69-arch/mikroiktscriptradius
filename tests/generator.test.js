@@ -13,6 +13,9 @@ assert.match(html, /id="liveSummary"/);
 assert.match(html, /id="extraVlansRows"/);
 assert.match(html, /data-server="pr3s3"/);
 assert.match(html, /id="scriptState"/);
+assert.doesNotMatch(html, /id="enablePppoe" type="checkbox" checked/);
+assert.match(html, /<option value="" selected>Select WAN type<\/option>/);
+assert.match(html, /<option value="" selected>Select RADIUS path<\/option>/);
 assert.doesNotMatch(html, /PR3S1\s*[·-]\s*143\.110\.244\.41/);
 
 function createGenerator() {
