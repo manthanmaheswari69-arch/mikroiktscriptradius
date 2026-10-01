@@ -32,6 +32,11 @@
             cursor: pointer
         }
 
+        :focus-visible { outline: 3px solid #7de8d5; outline-offset: 3px }
+
+        .skip-link { position: fixed; z-index: 100; top: 10px; left: 10px; transform: translateY(-160%); padding: 10px 14px; border-radius: 8px; background: #ecfffb; color: #071b21; font-weight: 800; text-decoration: none }
+        .skip-link:focus { transform: translateY(0) }
+
         ::selection {
             background: #44ddc066;
             color: #fff
@@ -151,6 +156,16 @@
             flex-wrap: wrap;
             margin-bottom: 48px
         }
+
+        .site-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 30px; padding: 22px 0 4px; border-top: 1px solid #233246; color: #91a8bb; font-size: 12px }
+        .site-footer p { margin: 0 }
+        .site-footer nav { display: flex; flex-wrap: wrap; gap: 12px }
+        .site-footer a { color: #8fe8d8; text-underline-offset: 3px }
+
+        .content-list { display: grid; gap: 10px; padding-left: 22px; color: #c5d6e2 }
+        .faq { display: grid; gap: 8px; margin: 0 }
+        .faq dt { color: #ecfffb; font-weight: 800 }
+        .faq dd { margin: 0 0 10px; color: #b8cad8 }
 
         .page-navbar {
             display: flex;
@@ -1414,6 +1429,8 @@
                 margin-right: 9px;
                 padding-right: 7px
             }
+
+            .site-footer { align-items: flex-start; flex-direction: column }
         }
 
         @media(prefers-reduced-motion:reduce) {

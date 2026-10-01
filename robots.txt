@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://manthanmaheswari69-arch.github.io/mikroiktscriptradius/sitemap.xml
