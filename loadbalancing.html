@@ -22,23 +22,21 @@
             <div class="main-column">
                 <div class="topbar"><div class="crumb">NETWORK TOOLS <b>/</b> LOAD BALANCING</div><div class="badge">ROUTEROS 7</div></div>
                 <header class="hero">
-                    <div class="eyebrow">SOURCE ADDRESS ROUTING</div>
-                    <h1>WAN routing,<br><span>from your address lists.</span></h1>
-                    <p>Mark WAN1 and WAN2 client address lists, then create the matching policy and main-table routes.</p>
+                    <div class="eyebrow">LOAD BALANCING</div>
+                    <h1>WAN routing,<br><span>PCC or source tagging.</span></h1>
+                    <p>Choose PCC bandwidth balancing or source-address tagging for your active customer connections.</p>
                 </header>
                 <section class="card">
-                    <div class="service-control">
-                        <label class="service-toggle"><input id="enableLoadBalancing" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable Load Balancing</span></label>
-                        <span id="loadBalancingStatus" class="status-badge is-disabled" role="status">Disabled</span>
+                    <div class="subcard">
+                        <div class="service-control"><label class="service-toggle"><input id="enablePcc" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable PCC load balancing</span></label><span id="pccStatus" class="status-badge is-disabled" role="status">Disabled</span></div>
+                        <div id="pccFields" class="service-fields is-collapsed"><div class="subcard-title">PCC WAN routing</div><p class="helper">Enter WAN bandwidth to create weighted PCC mangle rules.</p><div id="pccWanRows" class="repeatable-rows" aria-label="PCC WAN routing"></div><button id="addPccWan" type="button" class="add-row">+ Add PCC WAN</button><small>PCC uses <code>masquerade_pool</code> and divides connections in proportion to the bandwidth values.</small></div>
                     </div>
-                    <div id="loadBalancingFields" class="service-fields is-collapsed">
-                        <div class="section-head"><div class="num">01</div><div><h2>WAN source routing</h2><p>Add two or more WANs with their own routing tables, address lists, gateways, and distances.</p></div></div>
-                        <div id="wanRows" class="repeatable-rows" aria-label="WAN source routing"></div>
-                        <button id="addWan" type="button" class="add-row">+ Add WAN</button>
-                        <small>Create and fill the firewall address list named for each WAN separately. This page adds routing tables, mangle marks, and routes only.</small>
+                    <div class="subcard">
+                        <div class="service-control"><label class="service-toggle"><input id="enableTagging" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Enable source-address tagging</span></label><span id="taggingStatus" class="status-badge is-disabled" role="status">Disabled</span></div>
+                        <div id="taggingFields" class="service-fields is-collapsed"><div class="subcard-title">Source-address tagging</div><p class="helper">Map each source address list directly to its WAN routing table.</p><div id="taggingWanRows" class="repeatable-rows" aria-label="Source-address tagging WAN routing"></div><button id="addTaggingWan" type="button" class="add-row">+ Add tagged WAN</button><small>Tagging creates one routing mangle rule for every source address list.</small></div>
                     </div>
                 </section>
-                <section id="loadBalancingOutput" class="output-card hidden">
+                <section class="output-card">
                     <div class="output-top">
                         <div><div class="eyebrow">ROUTEROS 7 .RSC</div><h2>Routing script</h2><p>Review the gateways and distances, then copy the script.</p></div>
                         <div class="actions"><button id="generate">Generate script</button><button id="clear" class="secondary" disabled>Clear script</button><button id="copy" class="secondary" disabled>Copy</button><button id="download" class="secondary" disabled>Download .rsc</button></div>

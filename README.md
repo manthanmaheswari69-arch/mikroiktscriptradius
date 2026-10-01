@@ -2,7 +2,7 @@
 
 Open `index.html` in a browser. The generator runs locally and exports a RouterOS 7 `.rsc` script. The UI, styles, and generator logic live in separate files: `index.html`, `styles.css`, and `app.js`.
 
-Open `loadbalancing.html` for the separate multi-WAN source-address routing tool. It produces a routing table, mangle routing mark, policy route, and main route for every WAN. It does not add PCC, NAT, or address-list rules.
+Open `loadbalancing.html` for the separate multi-WAN tool. PCC and source-address tagging each have their own toggle and WAN configuration card. Enable one method at a time: PCC uses `masquerade_pool` to create mangle rules in the matching bandwidth ratio, while tagging marks each WAN address list directly. Both produce routing tables, policy routes, and main routes for every WAN.
 
 The output toolbar includes **Clear script**, which removes the generated output without changing the form. Preconfigured PR3S addresses are kept out of the visible server selector and address fields; address entry is shown only when **Custom server IP** is selected. The required address is still included in the generated RouterOS script.
 
