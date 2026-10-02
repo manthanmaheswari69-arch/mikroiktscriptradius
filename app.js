@@ -139,7 +139,6 @@ function updateLiveSummary() {
     const hotspot = $('enableHotspot').checked ? safeRange(value('hotspotSubnet'), 'hotspot') : 'Disabled';
     const ipBased = $('enableIpBased').checked ? safeRange(value('ipBasedSubnet'), 'hotspot') : 'Disabled';
     const reach = value('wanReach') === 'private' ? 'VPN / L2TP' : 'Public IP';
-    const radius = value('radiusIp') || 'Select a server';
 
     const extraWanCount = value('extraWans').split(/\r?\n/).filter(Boolean).length;
     $('summaryWan').textContent = (wanModes[value('wanMode')] || 'WAN') + ' on ' + value('wanInterface') + wanVlan + (extraWanCount ? ' + ' + extraWanCount + ' failover WAN' + (extraWanCount > 1 ? 's' : '') : '');
@@ -148,7 +147,7 @@ function updateLiveSummary() {
     $('summaryHotspot').textContent = hotspot;
     $('summaryIpBased').textContent = ipBased;
     $('summaryRadius').textContent = $('enableRadius').checked
-        ? (server ? selected.toUpperCase() : selected === 'custom' ? 'Custom' : 'No server') + ' | ' + reach + ' | ' + radius
+        ? (server ? selected.toUpperCase() : selected === 'custom' ? 'Custom' : 'No server') + ' | ' + reach
         : 'Disabled';
     $('ipQuickGateway').textContent = safeRange(value('ipBasedSubnet'), 'hotspot').split(' | ')[0];
     $('ipQuickRange').textContent = safeRange(value('ipBasedSubnet'), 'hotspot').split(' | ')[1] || 'Check subnet';

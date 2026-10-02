@@ -228,7 +228,7 @@ assert.equal(vlanFieldState.elements.get('wanVlanId').classList.contains('input-
 
 const dashboardState = createGenerator();
 assert.match(dashboardState.elements.get('summaryWan').textContent, /DHCP on ether1/);
-assert.match(dashboardState.elements.get('summaryRadius').textContent, /PR3S1 \| Public IP \| 143\.110\.244\.41/);
+assert.equal(dashboardState.elements.get('summaryRadius').textContent, 'PR3S1 | Public IP');
 dashboardState.elements.get('enableHotspot').checked = true;
 dashboardState.context.toggleHotspot();
 assert.equal(dashboardState.elements.get('hotspotFields').classList.contains('is-collapsed'), false);
