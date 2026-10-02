@@ -917,6 +917,15 @@ function initNavigation() {
     setActive(sections[0]?.id);
 }
 
+function initLiveSummary() {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const panel = $('liveSummary');
+    const mobile = window.matchMedia('(max-width: 1080px)');
+    const update = () => panel.open = !mobile.matches;
+    mobile.addEventListener('change', update);
+    update();
+}
+
 $('generate').onclick = () => {
     clearAllInputErrors();
     try {
@@ -964,4 +973,5 @@ toggleRouterUser();
 toggleRadius();
 initChoiceCards();
 initEditors();
+initLiveSummary();
 initNavigation();

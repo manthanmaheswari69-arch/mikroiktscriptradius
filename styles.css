@@ -161,6 +161,7 @@
         .site-footer p { margin: 0 }
         .site-footer nav { display: flex; flex-wrap: wrap; gap: 12px }
         .site-footer a { color: #8fe8d8; text-underline-offset: 3px }
+        .card a { color: #8fe8d8; font-weight: 700; text-underline-offset: 3px }
 
         .content-list { display: grid; gap: 10px; padding-left: 22px; color: #c5d6e2 }
         .faq { display: grid; gap: 8px; margin: 0 }
@@ -1319,7 +1320,7 @@
             .live-summary {
                 position: relative;
                 top: auto;
-                order: -1
+                order: 1
             }
 
             .live-summary:not([open]) .summary-list {
@@ -1332,46 +1333,21 @@
                 display: none
             }
 
-            .mobile-progress {
-                position: sticky;
-                z-index: 10;
-                top: 0;
-                display: grid;
-                grid-template-columns: repeat(8, 1fr);
-                gap: 4px;
-                padding: 8px 12px;
-                border-bottom: 1px solid #284657;
-                background: #0a1421f5
-            }
-
-            .mobile-progress a {
-                display: grid;
-                place-items: center;
-                min-height: 31px;
-                border: 1px solid #314b5d;
-                border-radius: 7px;
-                color: #9bb2c2;
-                font: 700 11px ui-monospace, monospace;
-                text-decoration: none
-            }
-
-            .mobile-progress a.is-active {
-                color: #0b2024;
-                background: #62dec7;
-                border-color: #62dec7
-            }
-
-            .mobile-progress a.is-complete {
-                color: #a3efdf;
-                border-color: #397e75
-            }
-
             .workspace {
                 padding-top: 24px
             }
         }
 
         @media(max-width:650px) {
+            .page-navbar {
+                flex-wrap: nowrap;
+                max-width: 100%;
+                overflow-x: auto;
+                padding-bottom: 3px
+            }
+
+            .page-navbar a { flex: 0 0 auto }
+
             .workspace {
                 padding: 20px 14px 48px
             }
