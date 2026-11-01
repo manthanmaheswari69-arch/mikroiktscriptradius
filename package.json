@@ -1,0 +1,8 @@
+{
+  "name": "routerforge",
+  "private": true,
+  "description": "Browser-based MikroTik RouterOS 7 PPPoE, Hotspot, RADIUS, load-balancing, and WireGuard script generator.",
+  "scripts": {
+    "test": "node tests/generator.test.js && node tests/loadbalancing.test.js && node tests/vpn.test.js && node tests/site.test.js"
+  }
+}

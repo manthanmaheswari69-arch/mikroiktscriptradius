@@ -71,12 +71,19 @@ Before import, review interface names, current router configuration, address ran
 
 ## Verification
 
-Run the browser-side generation checks with Node.js:
+Run every check with Node.js:
+
+```sh
+npm test
+```
+
+Or run each suite on its own:
 
 ```sh
 node tests/generator.test.js
 node tests/loadbalancing.test.js
 node tests/vpn.test.js
+node tests/site.test.js
 ```
 
 The tests cover single and multi-WAN output with route distances, exactly one NAT rule, PPPoE-only, independently enabled login Hotspot and IP-based MAC-RADIUS access, RADIUS on/off behavior, public RADIUS, PR3S RADIUS over L2TP, DHCP/static pool boundaries, cross-service/PPPoE/expired/WAN overlap rejection, WAN and bridge-member rejection, and rejection when every customer service is disabled.
